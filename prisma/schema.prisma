@@ -25,6 +25,9 @@ model Tenant {
   contacts Contact[]
   projects Project[]
   milestones Milestone[]
+  sprints Sprint[]
+  tasks BacklogTask[]
+  taskChanges TaskChange[]
 
   @@map("tenants")
 }
@@ -152,6 +155,8 @@ model Project {
   tenant           Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   customer         Customer    @relation(fields: [customerId], references: [id], onDelete: Restrict)
   milestones       Milestone[]
+  sprints          Sprint[]
+  tasks            BacklogTask[]
 
   @@index([tenantId])
   @@index([customerId])
@@ -179,6 +184,78 @@ model Milestone {
   @@index([tenantId, status])
   @@index([deletedAt])
   @@map("milestones")
+}
+
+model Sprint {
+  id        String        @id @default(uuid())
+  tenantId  String        @map("tenant_id")
+  projectId String        @map("project_id")
+  name      String
+  goal      String?
+  status    String        @default("PLANNED")
+  startDate DateTime?     @map("start_date")
+  endDate   DateTime?     @map("end_date")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+  deletedAt DateTime?     @map("deleted_at")
+  tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  tasks     BacklogTask[]
+  changes   TaskChange[]
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([tenantId, status])
+  @@index([deletedAt])
+  @@map("sprints")
+}
+
+model BacklogTask {
+  id            String       @id @default(uuid())
+  tenantId      String       @map("tenant_id")
+  projectId     String       @map("project_id")
+  sprintId      String?      @map("sprint_id")
+  title         String
+  description   String?
+  estimateHours Decimal      @map("estimate_hours") @db.Decimal(10, 2)
+  status        String       @default("TODO")
+  boardColumn   String       @default("TODO") @map("board_column")
+  assigneeUserId String?     @map("assignee_user_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  deletedAt     DateTime?    @map("deleted_at")
+  tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  project       Project      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  sprint        Sprint?      @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  changes       TaskChange[]
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([sprintId])
+  @@index([tenantId, status])
+  @@index([tenantId, boardColumn])
+  @@index([deletedAt])
+  @@map("tasks")
+}
+
+model TaskChange {
+  id                     String      @id @default(uuid())
+  tenantId               String      @map("tenant_id")
+  taskId                 String      @map("task_id")
+  sprintId               String?     @map("sprint_id")
+  fromStatus             String?     @map("from_status")
+  toStatus               String      @map("to_status")
+  remainingEstimateHours Decimal     @map("remaining_estimate_hours") @db.Decimal(10, 2)
+  changedAt              DateTime    @default(now()) @map("changed_at")
+  tenant                 Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  task                   BacklogTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  sprint                 Sprint?     @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([taskId])
+  @@index([sprintId])
+  @@index([changedAt])
+  @@map("task_changes")
 }
 
 model RefreshToken {

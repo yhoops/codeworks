@@ -1,0 +1,49 @@
+:root {
+  color: #132238;
+  background: linear-gradient(135deg, #eef5ff 0%, #f9fbfd 52%, #fff5e8 100%);
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px;
+}
+
+.hero {
+  max-width: 720px;
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-size: 0.78rem;
+  color: #7b8897;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(3rem, 8vw, 5.25rem);
+  line-height: 0.95;
+}
+
+.subtitle {
+  margin: 20px auto 0;
+  max-width: 540px;
+  font-size: 1.05rem;
+  color: #425466;
+}

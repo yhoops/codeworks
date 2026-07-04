@@ -4,6 +4,10 @@ dist/
 build/
 coverage/
 *.tsbuildinfo
+playwright-report/
+test-results/
+node_modules.corrupt-install/
+pnpm-lock.yaml.*
 
 # === 环境与密钥（严禁提交）===
 .env

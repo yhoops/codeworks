@@ -1,0 +1,36 @@
+# === 依赖 / 构建产物 ===
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# === 环境与密钥（严禁提交）===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# === 日志 / 运行时 ===
+*.log
+logs/
+pids/
+*.pid
+
+# === 数据库 / 上传（本地开发）===
+*.sqlite
+*.sqlite3
+/uploads/
+/storage/
+
+# === 工具缓存 / 索引 / 技能包（可再生，非产品代码）===
+.codegraph/
+.codex/
+.claude/
+
+# === 编辑器 / 操作系统 ===
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

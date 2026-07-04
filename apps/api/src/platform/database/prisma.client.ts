@@ -379,47 +379,21 @@ export function createPrismaClient() {
           const { tenantId } = requireTenantContext();
           return query(applyTenantOnlyFilter(args, tenantId));
         },
-        async update({ args, query }) {
-          const context = requireTenantContext();
-
-          await assertTenantDataForWrite(prisma, context, "AuditLog", args.data);
-          await assertWhereTargetsTenant(prisma, context, "AuditLog", args.where, (id) =>
-            prisma.auditLog.findUnique({
-              where: { id },
-              select: { id: true, tenantId: true }
-            })
-          );
-
-          return query({
-            ...applyTenantOnlyFilter(args, context.tenantId),
-            data: assertTenantData(args.data, context.tenantId) as typeof args.data
-          });
+        async update() {
+          requireTenantContext();
+          throw new Error("AuditLog is append-only");
         },
-        async updateMany({ args, query }) {
-          const context = requireTenantContext();
-
-          await assertTenantDataForWrite(prisma, context, "AuditLog", args.data);
-
-          return query({
-            ...applyTenantOnlyFilter(args, context.tenantId),
-            data: assertTenantData(args.data, context.tenantId) as typeof args.data
-          });
+        async updateMany() {
+          requireTenantContext();
+          throw new Error("AuditLog is append-only");
         },
-        async delete({ args, query }) {
-          const context = requireTenantContext();
-
-          await assertWhereTargetsTenant(prisma, context, "AuditLog", args.where, (id) =>
-            prisma.auditLog.findUnique({
-              where: { id },
-              select: { id: true, tenantId: true }
-            })
-          );
-
-          return query(applyTenantOnlyFilter(args, context.tenantId));
+        async delete() {
+          requireTenantContext();
+          throw new Error("AuditLog is append-only");
         },
-        async deleteMany({ args, query }) {
-          const { tenantId } = requireTenantContext();
-          return query(applyTenantOnlyFilter(args, tenantId));
+        async deleteMany() {
+          requireTenantContext();
+          throw new Error("AuditLog is append-only");
         }
       }
     }

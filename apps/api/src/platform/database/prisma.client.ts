@@ -207,9 +207,10 @@ function collectCustomerIds(data: unknown, ids = new Set<string>()): Set<string>
   return ids;
 }
 
-async function assertContactCustomerTargetsTenant(
+async function assertCustomerTargetsTenant(
   prisma: PrismaClient,
   context: TenantContext,
+  entityType: string,
   data: unknown
 ) {
   const customerIds = [...collectCustomerIds(data)];
@@ -227,10 +228,69 @@ async function assertContactCustomerTargetsTenant(
   );
 
   if (foreignCustomer) {
-    await auditForbiddenTenantAccess(prisma, context, "Contact", {
+    await auditForbiddenTenantAccess(prisma, context, entityType, {
       reason: "foreign_customer",
       entityId: foreignCustomer.id,
       requestedTenantId: foreignCustomer.tenantId
+    });
+    throw new ForbiddenTenantAccessError();
+  }
+}
+
+function collectProjectIds(data: unknown, ids = new Set<string>()): Set<string> {
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      collectProjectIds(item, ids);
+    }
+
+    return ids;
+  }
+
+  if (!data || typeof data !== "object") {
+    return ids;
+  }
+
+  const record = data as {
+    projectId?: unknown;
+    project?: { connect?: { id?: unknown } };
+  };
+
+  if (typeof record.projectId === "string") {
+    ids.add(record.projectId);
+  }
+
+  if (typeof record.project?.connect?.id === "string") {
+    ids.add(record.project.connect.id);
+  }
+
+  return ids;
+}
+
+async function assertProjectTargetsTenant(
+  prisma: PrismaClient,
+  context: TenantContext,
+  entityType: string,
+  data: unknown
+) {
+  const projectIds = [...collectProjectIds(data)];
+
+  if (projectIds.length === 0) {
+    return;
+  }
+
+  const projects = await prisma.project.findMany({
+    where: { id: { in: projectIds } },
+    select: { id: true, tenantId: true }
+  });
+  const foreignProject = projects.find(
+    (project) => project.tenantId !== context.tenantId
+  );
+
+  if (foreignProject) {
+    await auditForbiddenTenantAccess(prisma, context, entityType, {
+      reason: "foreign_project",
+      entityId: foreignProject.id,
+      requestedTenantId: foreignProject.tenantId
     });
     throw new ForbiddenTenantAccessError();
   }
@@ -297,6 +357,28 @@ export function createSystemPrismaClient() {
         }
       },
       contact: {
+        async findMany({ args, query }) {
+          return query(applyNotDeleted(args));
+        },
+        async findFirst({ args, query }) {
+          return query(applyNotDeleted(args));
+        },
+        async count({ args, query }) {
+          return query(applyNotDeleted(args));
+        }
+      },
+      project: {
+        async findMany({ args, query }) {
+          return query(applyNotDeleted(args));
+        },
+        async findFirst({ args, query }) {
+          return query(applyNotDeleted(args));
+        },
+        async count({ args, query }) {
+          return query(applyNotDeleted(args));
+        }
+      },
+      milestone: {
         async findMany({ args, query }) {
           return query(applyNotDeleted(args));
         },
@@ -528,7 +610,7 @@ export function createPrismaClient() {
           const context = requireTenantContext();
 
           await assertTenantDataForWrite(prisma, context, "Contact", args.data);
-          await assertContactCustomerTargetsTenant(prisma, context, args.data);
+          await assertCustomerTargetsTenant(prisma, context, "Contact", args.data);
 
           return query({
             ...args,
@@ -539,7 +621,7 @@ export function createPrismaClient() {
           const context = requireTenantContext();
 
           await assertTenantDataForWrite(prisma, context, "Contact", args.data);
-          await assertContactCustomerTargetsTenant(prisma, context, args.data);
+          await assertCustomerTargetsTenant(prisma, context, "Contact", args.data);
 
           return query({
             ...args,
@@ -568,7 +650,7 @@ export function createPrismaClient() {
           const context = requireTenantContext();
 
           await assertTenantDataForWrite(prisma, context, "Contact", args.data);
-          await assertContactCustomerTargetsTenant(prisma, context, args.data);
+          await assertCustomerTargetsTenant(prisma, context, "Contact", args.data);
           await assertWhereTargetsTenant(prisma, context, "Contact", args.where, (id) =>
             prisma.contact.findUnique({
               where: { id },
@@ -585,7 +667,7 @@ export function createPrismaClient() {
           const context = requireTenantContext();
 
           await assertTenantDataForWrite(prisma, context, "Contact", args.data);
-          await assertContactCustomerTargetsTenant(prisma, context, args.data);
+          await assertCustomerTargetsTenant(prisma, context, "Contact", args.data);
 
           return query({
             ...applyTenantSoftDeleteFilter(args, context.tenantId),
@@ -613,10 +695,228 @@ export function createPrismaClient() {
 
           await assertTenantDataForWrite(prisma, context, "Contact", args.create);
           await assertTenantDataForWrite(prisma, context, "Contact", args.update);
-          await assertContactCustomerTargetsTenant(prisma, context, args.create);
-          await assertContactCustomerTargetsTenant(prisma, context, args.update);
+          await assertCustomerTargetsTenant(prisma, context, "Contact", args.create);
+          await assertCustomerTargetsTenant(prisma, context, "Contact", args.update);
           await assertWhereTargetsTenant(prisma, context, "Contact", args.where, (id) =>
             prisma.contact.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            create: applyTenantData(args.create, context.tenantId) as typeof args.create,
+            update: assertTenantData(
+              args.update,
+              context.tenantId
+            ) as typeof args.update
+          });
+        }
+      },
+      project: {
+        async create({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Project", args.data);
+          await assertCustomerTargetsTenant(prisma, context, "Project", args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async createMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Project", args.data);
+          await assertCustomerTargetsTenant(prisma, context, "Project", args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async findMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async findFirst({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async findUnique({ args, query }) {
+          const context = requireTenantContext();
+          const result = await query(args);
+
+          return assertTenantResult(prisma, context, "Project", result);
+        },
+        async count({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async update({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Project", args.data);
+          await assertCustomerTargetsTenant(prisma, context, "Project", args.data);
+          await assertWhereTargetsTenant(prisma, context, "Project", args.where, (id) =>
+            prisma.project.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async updateMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Project", args.data);
+          await assertCustomerTargetsTenant(prisma, context, "Project", args.data);
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async delete({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertWhereTargetsTenant(prisma, context, "Project", args.where, (id) =>
+            prisma.project.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query(applyTenantSoftDeleteFilter(args, context.tenantId));
+        },
+        async deleteMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async upsert({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Project", args.create);
+          await assertTenantDataForWrite(prisma, context, "Project", args.update);
+          await assertCustomerTargetsTenant(prisma, context, "Project", args.create);
+          await assertCustomerTargetsTenant(prisma, context, "Project", args.update);
+          await assertWhereTargetsTenant(prisma, context, "Project", args.where, (id) =>
+            prisma.project.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            create: applyTenantData(args.create, context.tenantId) as typeof args.create,
+            update: assertTenantData(
+              args.update,
+              context.tenantId
+            ) as typeof args.update
+          });
+        }
+      },
+      milestone: {
+        async create({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Milestone", args.data);
+          await assertProjectTargetsTenant(prisma, context, "Milestone", args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async createMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Milestone", args.data);
+          await assertProjectTargetsTenant(prisma, context, "Milestone", args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async findMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async findFirst({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async findUnique({ args, query }) {
+          const context = requireTenantContext();
+          const result = await query(args);
+
+          return assertTenantResult(prisma, context, "Milestone", result);
+        },
+        async count({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async update({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Milestone", args.data);
+          await assertProjectTargetsTenant(prisma, context, "Milestone", args.data);
+          await assertWhereTargetsTenant(prisma, context, "Milestone", args.where, (id) =>
+            prisma.milestone.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async updateMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Milestone", args.data);
+          await assertProjectTargetsTenant(prisma, context, "Milestone", args.data);
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async delete({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertWhereTargetsTenant(prisma, context, "Milestone", args.where, (id) =>
+            prisma.milestone.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query(applyTenantSoftDeleteFilter(args, context.tenantId));
+        },
+        async deleteMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async upsert({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Milestone", args.create);
+          await assertTenantDataForWrite(prisma, context, "Milestone", args.update);
+          await assertProjectTargetsTenant(prisma, context, "Milestone", args.create);
+          await assertProjectTargetsTenant(prisma, context, "Milestone", args.update);
+          await assertWhereTargetsTenant(prisma, context, "Milestone", args.where, (id) =>
+            prisma.milestone.findUnique({
               where: { id },
               select: { id: true, tenantId: true }
             })

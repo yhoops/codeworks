@@ -250,4 +250,60 @@ describeWithDatabase("Tenant-isolated Prisma client", () => {
       })
     ).resolves.toHaveLength(1);
   });
+
+  it("rejects projects and milestones linked to another tenant's aggregate", async () => {
+    const suffix = randomUUID();
+    const tenantA = await systemPrisma.tenant.create({
+      data: { name: "Tenant A", slug: `tenant-a-project-${suffix}` }
+    });
+    const tenantB = await systemPrisma.tenant.create({
+      data: { name: "Tenant B", slug: `tenant-b-project-${suffix}` }
+    });
+    const tenantBCustomer = await systemPrisma.customer.create({
+      data: {
+        tenantId: tenantB.id,
+        name: `Tenant B Project Customer ${suffix}`
+      }
+    });
+    const tenantBProject = await systemPrisma.project.create({
+      data: {
+        tenantId: tenantB.id,
+        customerId: tenantBCustomer.id,
+        name: `Tenant B Project ${suffix}`,
+        projectManagerId: randomUUID()
+      }
+    });
+
+    await expect(
+      runWithTenantContext({ tenantId: tenantA.id }, () =>
+        tenantPrisma.project.create({
+          data: {
+            customerId: tenantBCustomer.id,
+            name: "Cross Tenant Project",
+            projectManagerId: randomUUID()
+          }
+        })
+      )
+    ).rejects.toBeInstanceOf(ForbiddenTenantAccessError);
+    await expect(
+      runWithTenantContext({ tenantId: tenantA.id }, () =>
+        tenantPrisma.milestone.create({
+          data: {
+            projectId: tenantBProject.id,
+            name: "Cross Tenant Milestone"
+          }
+        })
+      )
+    ).rejects.toBeInstanceOf(ForbiddenTenantAccessError);
+
+    await expect(
+      systemPrisma.auditLog.findMany({
+        where: {
+          tenantId: tenantA.id,
+          action: "CROSS_TENANT_ACCESS_DENIED",
+          entityType: { in: ["Project", "Milestone"] }
+        }
+      })
+    ).resolves.toHaveLength(2);
+  });
 });

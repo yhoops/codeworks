@@ -28,6 +28,10 @@ model Tenant {
   sprints Sprint[]
   tasks BacklogTask[]
   taskChanges TaskChange[]
+  employees Employee[]
+  skills Skill[]
+  employeeSkills EmployeeSkill[]
+  capacities Capacity[]
 
   @@map("tenants")
 }
@@ -256,6 +260,81 @@ model TaskChange {
   @@index([sprintId])
   @@index([changedAt])
   @@map("task_changes")
+}
+
+model Employee {
+  id          String          @id @default(uuid())
+  tenantId    String          @map("tenant_id")
+  name        String
+  email       String?
+  costRate    Decimal         @map("cost_rate") @db.Decimal(10, 2)
+  currency    String          @default("CNY")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  deletedAt   DateTime?       @map("deleted_at")
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  skills      EmployeeSkill[]
+  capacities  Capacity[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([deletedAt])
+  @@map("employees")
+}
+
+model Skill {
+  id        String          @id @default(uuid())
+  tenantId  String          @map("tenant_id")
+  name      String
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+  deletedAt DateTime?       @map("deleted_at")
+  tenant    Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  employees EmployeeSkill[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([deletedAt])
+  @@map("skills")
+}
+
+model EmployeeSkill {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  employeeId String   @map("employee_id")
+  skillId    String   @map("skill_id")
+  level      String   @default("MID")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  skill      Skill    @relation(fields: [skillId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, employeeId, skillId])
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([skillId])
+  @@map("employee_skills")
+}
+
+model Capacity {
+  id            String    @id @default(uuid())
+  tenantId      String    @map("tenant_id")
+  employeeId    String    @map("employee_id")
+  weeklyHours   Decimal   @map("weekly_hours") @db.Decimal(10, 2)
+  effectiveFrom DateTime  @default(now()) @map("effective_from")
+  effectiveTo   DateTime? @map("effective_to")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([effectiveFrom])
+  @@index([deletedAt])
+  @@map("capacities")
 }
 
 model RefreshToken {

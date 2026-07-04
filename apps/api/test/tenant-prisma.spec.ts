@@ -361,4 +361,61 @@ describeWithDatabase("Tenant-isolated Prisma client", () => {
       })
     ).resolves.toHaveLength(1);
   });
+
+  it("rejects resource profiles linked to another tenant's employee or skill", async () => {
+    const suffix = randomUUID();
+    const tenantA = await systemPrisma.tenant.create({
+      data: { name: "Tenant A", slug: `tenant-a-resource-${suffix}` }
+    });
+    const tenantB = await systemPrisma.tenant.create({
+      data: { name: "Tenant B", slug: `tenant-b-resource-${suffix}` }
+    });
+    const tenantBEmployee = await systemPrisma.employee.create({
+      data: {
+        tenantId: tenantB.id,
+        name: "Tenant B Employee",
+        costRate: new Prisma.Decimal("100.00")
+      }
+    });
+    const tenantBSkill = await systemPrisma.skill.create({
+      data: {
+        tenantId: tenantB.id,
+        name: `Tenant B Skill ${suffix}`
+      }
+    });
+
+    await expect(
+      runWithTenantContext({ tenantId: tenantA.id }, () =>
+        tenantPrisma.employeeSkill.create({
+          data: {
+            tenantId: tenantA.id,
+            employeeId: tenantBEmployee.id,
+            skillId: tenantBSkill.id,
+            level: "SENIOR"
+          }
+        })
+      )
+    ).rejects.toBeInstanceOf(ForbiddenTenantAccessError);
+    await expect(
+      runWithTenantContext({ tenantId: tenantA.id }, () =>
+        tenantPrisma.capacity.create({
+          data: {
+            tenantId: tenantA.id,
+            employeeId: tenantBEmployee.id,
+            weeklyHours: new Prisma.Decimal("40.00")
+          }
+        })
+      )
+    ).rejects.toBeInstanceOf(ForbiddenTenantAccessError);
+
+    await expect(
+      systemPrisma.auditLog.findMany({
+        where: {
+          tenantId: tenantA.id,
+          action: "CROSS_TENANT_ACCESS_DENIED",
+          entityType: { in: ["EmployeeSkill", "Capacity"] }
+        }
+      })
+    ).resolves.toHaveLength(2);
+  });
 });

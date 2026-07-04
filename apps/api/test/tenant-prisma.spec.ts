@@ -213,4 +213,41 @@ describeWithDatabase("Tenant-isolated Prisma client", () => {
       )
     ).rejects.toBeInstanceOf(ForbiddenTenantAccessError);
   });
+
+  it("rejects contacts linked to another tenant's customer", async () => {
+    const suffix = randomUUID();
+    const tenantA = await systemPrisma.tenant.create({
+      data: { name: "Tenant A", slug: `tenant-a-contact-${suffix}` }
+    });
+    const tenantB = await systemPrisma.tenant.create({
+      data: { name: "Tenant B", slug: `tenant-b-contact-${suffix}` }
+    });
+    const tenantBCustomer = await systemPrisma.customer.create({
+      data: {
+        tenantId: tenantB.id,
+        name: `Tenant B Customer ${suffix}`
+      }
+    });
+
+    await expect(
+      runWithTenantContext({ tenantId: tenantA.id }, () =>
+        tenantPrisma.contact.create({
+          data: {
+            customerId: tenantBCustomer.id,
+            name: "Cross Tenant Contact"
+          }
+        })
+      )
+    ).rejects.toBeInstanceOf(ForbiddenTenantAccessError);
+
+    await expect(
+      systemPrisma.auditLog.findMany({
+        where: {
+          tenantId: tenantA.id,
+          action: "CROSS_TENANT_ACCESS_DENIED",
+          entityType: "Contact"
+        }
+      })
+    ).resolves.toHaveLength(1);
+  });
 });

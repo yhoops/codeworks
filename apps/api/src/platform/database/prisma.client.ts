@@ -178,6 +178,64 @@ async function assertWhereTargetsTenant(
   }
 }
 
+function collectCustomerIds(data: unknown, ids = new Set<string>()): Set<string> {
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      collectCustomerIds(item, ids);
+    }
+
+    return ids;
+  }
+
+  if (!data || typeof data !== "object") {
+    return ids;
+  }
+
+  const record = data as {
+    customerId?: unknown;
+    customer?: { connect?: { id?: unknown } };
+  };
+
+  if (typeof record.customerId === "string") {
+    ids.add(record.customerId);
+  }
+
+  if (typeof record.customer?.connect?.id === "string") {
+    ids.add(record.customer.connect.id);
+  }
+
+  return ids;
+}
+
+async function assertContactCustomerTargetsTenant(
+  prisma: PrismaClient,
+  context: TenantContext,
+  data: unknown
+) {
+  const customerIds = [...collectCustomerIds(data)];
+
+  if (customerIds.length === 0) {
+    return;
+  }
+
+  const customers = await prisma.customer.findMany({
+    where: { id: { in: customerIds } },
+    select: { id: true, tenantId: true }
+  });
+  const foreignCustomer = customers.find(
+    (customer) => customer.tenantId !== context.tenantId
+  );
+
+  if (foreignCustomer) {
+    await auditForbiddenTenantAccess(prisma, context, "Contact", {
+      reason: "foreign_customer",
+      entityId: foreignCustomer.id,
+      requestedTenantId: foreignCustomer.tenantId
+    });
+    throw new ForbiddenTenantAccessError();
+  }
+}
+
 async function assertTenantResult(
   prisma: PrismaClient,
   context: TenantContext,
@@ -217,6 +275,28 @@ export function createSystemPrismaClient() {
     name: "soft-delete-defaults",
     query: {
       budget: {
+        async findMany({ args, query }) {
+          return query(applyNotDeleted(args));
+        },
+        async findFirst({ args, query }) {
+          return query(applyNotDeleted(args));
+        },
+        async count({ args, query }) {
+          return query(applyNotDeleted(args));
+        }
+      },
+      customer: {
+        async findMany({ args, query }) {
+          return query(applyNotDeleted(args));
+        },
+        async findFirst({ args, query }) {
+          return query(applyNotDeleted(args));
+        },
+        async count({ args, query }) {
+          return query(applyNotDeleted(args));
+        }
+      },
+      contact: {
         async findMany({ args, query }) {
           return query(applyNotDeleted(args));
         },
@@ -325,6 +405,218 @@ export function createPrismaClient() {
           await assertTenantDataForWrite(prisma, context, "Budget", args.update);
           await assertWhereTargetsTenant(prisma, context, "Budget", args.where, (id) =>
             prisma.budget.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            create: applyTenantData(args.create, context.tenantId) as typeof args.create,
+            update: assertTenantData(
+              args.update,
+              context.tenantId
+            ) as typeof args.update
+          });
+        }
+      },
+      customer: {
+        async create({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Customer", args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async createMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Customer", args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async findMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async findFirst({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async findUnique({ args, query }) {
+          const context = requireTenantContext();
+          const result = await query(args);
+
+          return assertTenantResult(prisma, context, "Customer", result);
+        },
+        async count({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async update({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Customer", args.data);
+          await assertWhereTargetsTenant(prisma, context, "Customer", args.where, (id) =>
+            prisma.customer.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async updateMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Customer", args.data);
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async delete({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertWhereTargetsTenant(prisma, context, "Customer", args.where, (id) =>
+            prisma.customer.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query(applyTenantSoftDeleteFilter(args, context.tenantId));
+        },
+        async deleteMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async upsert({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Customer", args.create);
+          await assertTenantDataForWrite(prisma, context, "Customer", args.update);
+          await assertWhereTargetsTenant(prisma, context, "Customer", args.where, (id) =>
+            prisma.customer.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            create: applyTenantData(args.create, context.tenantId) as typeof args.create,
+            update: assertTenantData(
+              args.update,
+              context.tenantId
+            ) as typeof args.update
+          });
+        }
+      },
+      contact: {
+        async create({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Contact", args.data);
+          await assertContactCustomerTargetsTenant(prisma, context, args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async createMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Contact", args.data);
+          await assertContactCustomerTargetsTenant(prisma, context, args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async findMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async findFirst({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async findUnique({ args, query }) {
+          const context = requireTenantContext();
+          const result = await query(args);
+
+          return assertTenantResult(prisma, context, "Contact", result);
+        },
+        async count({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async update({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Contact", args.data);
+          await assertContactCustomerTargetsTenant(prisma, context, args.data);
+          await assertWhereTargetsTenant(prisma, context, "Contact", args.where, (id) =>
+            prisma.contact.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async updateMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Contact", args.data);
+          await assertContactCustomerTargetsTenant(prisma, context, args.data);
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async delete({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertWhereTargetsTenant(prisma, context, "Contact", args.where, (id) =>
+            prisma.contact.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query(applyTenantSoftDeleteFilter(args, context.tenantId));
+        },
+        async deleteMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async upsert({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "Contact", args.create);
+          await assertTenantDataForWrite(prisma, context, "Contact", args.update);
+          await assertContactCustomerTargetsTenant(prisma, context, args.create);
+          await assertContactCustomerTargetsTenant(prisma, context, args.update);
+          await assertWhereTargetsTenant(prisma, context, "Contact", args.where, (id) =>
+            prisma.contact.findUnique({
               where: { id },
               select: { id: true, tenantId: true }
             })

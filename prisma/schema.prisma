@@ -21,6 +21,8 @@ model Tenant {
   auditLogs AuditLog[]
   memberships Membership[]
   departments Department[]
+  customers Customer[]
+  contacts Contact[]
 
   @@map("tenants")
 }
@@ -93,6 +95,44 @@ model Department {
   @@index([parentId])
   @@index([deletedAt])
   @@map("departments")
+}
+
+model Customer {
+  id        String    @id @default(uuid())
+  tenantId  String    @map("tenant_id")
+  name      String
+  status    String    @default("ACTIVE")
+  notes     String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  contacts  Contact[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([deletedAt])
+  @@map("customers")
+}
+
+model Contact {
+  id         String    @id @default(uuid())
+  tenantId   String    @map("tenant_id")
+  customerId String    @map("customer_id")
+  name       String
+  email      String?
+  phone      String?
+  title      String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([deletedAt])
+  @@map("contacts")
 }
 
 model RefreshToken {

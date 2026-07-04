@@ -11,6 +11,7 @@ model Tenant {
   id        String    @id @default(uuid())
   name      String
   slug      String    @unique
+  seatLimit Int       @default(1) @map("seat_limit")
   createdAt DateTime  @default(now()) @map("created_at")
   createdBy String?   @map("created_by")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -18,6 +19,7 @@ model Tenant {
   deletedAt DateTime? @map("deleted_at")
   budgets   Budget[]
   auditLogs AuditLog[]
+  memberships Membership[]
 
   @@map("tenants")
 }
@@ -47,8 +49,26 @@ model User {
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   refreshTokens RefreshToken[]
+  memberships   Membership[]
 
   @@map("users")
+}
+
+model Membership {
+  id        String    @id @default(uuid())
+  tenantId  String    @map("tenant_id")
+  userId    String    @map("user_id")
+  role      String
+  status    String    @default("ACTIVE")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@index([tenantId, status])
+  @@map("memberships")
 }
 
 model RefreshToken {

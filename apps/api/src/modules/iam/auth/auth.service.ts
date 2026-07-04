@@ -16,12 +16,19 @@ export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
   user: AuthUser;
+  tenant?: {
+    id: string;
+    slug: string;
+    role: string;
+  };
 }
 
 interface TokenPayload {
   sub: string;
   email: string;
   typ: "access" | "refresh";
+  tenantId?: string;
+  role?: string;
   ver?: number;
   jti?: string;
 }
@@ -67,7 +74,11 @@ export class AuthService implements OnModuleDestroy {
     return this.issueTokens(user);
   }
 
-  async login(input: { email: string; password: string }): Promise<AuthTokens> {
+  async login(input: {
+    email: string;
+    password: string;
+    tenantSlug?: string;
+  }): Promise<AuthTokens> {
     const email = this.normalizeEmail(input.email);
     const user = await this.prisma.user.findUnique({ where: { email } });
 
@@ -75,7 +86,11 @@ export class AuthService implements OnModuleDestroy {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    return this.issueTokens(user);
+    const membership = input.tenantSlug
+      ? await this.requireActiveMembership(user.id, input.tenantSlug)
+      : undefined;
+
+    return this.issueTokens(user, membership);
   }
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
@@ -132,7 +147,14 @@ export class AuthService implements OnModuleDestroy {
     return this.toAuthUser(user);
   }
 
-  private async issueTokens(user: User): Promise<AuthTokens> {
+  private async issueTokens(
+    user: User,
+    membership?: {
+      tenantId: string;
+      role: string;
+      tenant: { id: string; slug: string };
+    }
+  ): Promise<AuthTokens> {
     const refreshTokenId = randomUUID();
     const refreshExpiresAt = new Date(
       Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000
@@ -141,6 +163,8 @@ export class AuthService implements OnModuleDestroy {
       sub: user.id,
       email: user.email,
       typ: "access",
+      tenantId: membership?.tenantId,
+      role: membership?.role,
       ver: user.accessTokenVersion
     }, ACCESS_TOKEN_TTL_SECONDS);
     const refreshToken = await this.signToken({
@@ -162,7 +186,14 @@ export class AuthService implements OnModuleDestroy {
     return {
       accessToken,
       refreshToken,
-      user: this.toAuthUser(user)
+      user: this.toAuthUser(user),
+      tenant: membership
+        ? {
+            id: membership.tenant.id,
+            slug: membership.tenant.slug,
+            role: membership.role
+          }
+        : undefined
     };
   }
 
@@ -173,6 +204,8 @@ export class AuthService implements OnModuleDestroy {
     return new SignJWT({
       email: payload.email,
       typ: payload.typ,
+      tenantId: payload.tenantId,
+      role: payload.role,
       ver: payload.ver
     })
       .setProtectedHeader({ alg: "HS256" })
@@ -198,6 +231,8 @@ export class AuthService implements OnModuleDestroy {
         sub: payload.sub,
         email: String(payload.email ?? ""),
         typ: expectedType,
+        tenantId: typeof payload.tenantId === "string" ? payload.tenantId : undefined,
+        role: typeof payload.role === "string" ? payload.role : undefined,
         ver: typeof payload.ver === "number" ? payload.ver : undefined,
         jti: typeof payload.jti === "string" ? payload.jti : undefined
       };
@@ -220,6 +255,27 @@ export class AuthService implements OnModuleDestroy {
 
   private hashToken(token: string): string {
     return createHash("sha256").update(token).digest("hex");
+  }
+
+  private async requireActiveMembership(userId: string, tenantSlug: string) {
+    const membership = await this.prisma.membership.findFirst({
+      where: {
+        userId,
+        status: "ACTIVE",
+        tenant: { slug: tenantSlug }
+      },
+      include: {
+        tenant: {
+          select: { id: true, slug: true }
+        }
+      }
+    });
+
+    if (!membership) {
+      throw new UnauthorizedException("Tenant membership is inactive or missing");
+    }
+
+    return membership;
   }
 
   private async hashPassword(password: string): Promise<string> {

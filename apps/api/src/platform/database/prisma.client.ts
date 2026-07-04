@@ -675,6 +675,17 @@ export function createSystemPrismaClient() {
         async count({ args, query }) {
           return query(applyNotDeleted(args));
         }
+      },
+      resourceAllocation: {
+        async findMany({ args, query }) {
+          return query(applyNotDeleted(args));
+        },
+        async findFirst({ args, query }) {
+          return query(applyNotDeleted(args));
+        },
+        async count({ args, query }) {
+          return query(applyNotDeleted(args));
+        }
       }
     }
   });
@@ -1814,6 +1825,139 @@ export function createPrismaClient() {
         async deleteMany({ args, query }) {
           const { tenantId } = requireTenantContext();
           return query(applyTenantSoftDeleteFilter(args, tenantId));
+        }
+      },
+      resourceAllocation: {
+        async create({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "ResourceAllocation", args.data);
+          await assertEmployeeTargetsTenant(prisma, context, "ResourceAllocation", args.data);
+          await assertProjectTargetsTenant(prisma, context, "ResourceAllocation", args.data);
+          await assertTaskTargetsTenant(prisma, context, "ResourceAllocation", args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async createMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "ResourceAllocation", args.data);
+          await assertEmployeeTargetsTenant(prisma, context, "ResourceAllocation", args.data);
+          await assertProjectTargetsTenant(prisma, context, "ResourceAllocation", args.data);
+          await assertTaskTargetsTenant(prisma, context, "ResourceAllocation", args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async findMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async findFirst({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async findUnique({ args, query }) {
+          const context = requireTenantContext();
+          const result = await query(args);
+
+          return assertTenantResult(prisma, context, "ResourceAllocation", result);
+        },
+        async count({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async update({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "ResourceAllocation", args.data);
+          await assertEmployeeTargetsTenant(prisma, context, "ResourceAllocation", args.data);
+          await assertProjectTargetsTenant(prisma, context, "ResourceAllocation", args.data);
+          await assertTaskTargetsTenant(prisma, context, "ResourceAllocation", args.data);
+          await assertWhereTargetsTenant(
+            prisma,
+            context,
+            "ResourceAllocation",
+            args.where,
+            (id) =>
+              prisma.resourceAllocation.findUnique({
+                where: { id },
+                select: { id: true, tenantId: true }
+              })
+          );
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async updateMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "ResourceAllocation", args.data);
+          await assertEmployeeTargetsTenant(prisma, context, "ResourceAllocation", args.data);
+          await assertProjectTargetsTenant(prisma, context, "ResourceAllocation", args.data);
+          await assertTaskTargetsTenant(prisma, context, "ResourceAllocation", args.data);
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async delete({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertWhereTargetsTenant(
+            prisma,
+            context,
+            "ResourceAllocation",
+            args.where,
+            (id) =>
+              prisma.resourceAllocation.findUnique({
+                where: { id },
+                select: { id: true, tenantId: true }
+              })
+          );
+
+          return query(applyTenantSoftDeleteFilter(args, context.tenantId));
+        },
+        async deleteMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async upsert({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "ResourceAllocation", args.create);
+          await assertTenantDataForWrite(prisma, context, "ResourceAllocation", args.update);
+          await assertEmployeeTargetsTenant(prisma, context, "ResourceAllocation", args.create);
+          await assertEmployeeTargetsTenant(prisma, context, "ResourceAllocation", args.update);
+          await assertProjectTargetsTenant(prisma, context, "ResourceAllocation", args.create);
+          await assertProjectTargetsTenant(prisma, context, "ResourceAllocation", args.update);
+          await assertTaskTargetsTenant(prisma, context, "ResourceAllocation", args.create);
+          await assertTaskTargetsTenant(prisma, context, "ResourceAllocation", args.update);
+          await assertWhereTargetsTenant(
+            prisma,
+            context,
+            "ResourceAllocation",
+            args.where,
+            (id) =>
+              prisma.resourceAllocation.findUnique({
+                where: { id },
+                select: { id: true, tenantId: true }
+              })
+          );
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            create: applyTenantData(args.create, context.tenantId) as typeof args.create,
+            update: assertTenantData(args.update, context.tenantId) as typeof args.update
+          });
         }
       },
       auditLog: {

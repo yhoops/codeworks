@@ -32,6 +32,7 @@ model Tenant {
   skills Skill[]
   employeeSkills EmployeeSkill[]
   capacities Capacity[]
+  resourceAllocations ResourceAllocation[]
 
   @@map("tenants")
 }
@@ -161,6 +162,7 @@ model Project {
   milestones       Milestone[]
   sprints          Sprint[]
   tasks            BacklogTask[]
+  resourceAllocations ResourceAllocation[]
 
   @@index([tenantId])
   @@index([customerId])
@@ -232,6 +234,7 @@ model BacklogTask {
   project       Project      @relation(fields: [projectId], references: [id], onDelete: Restrict)
   sprint        Sprint?      @relation(fields: [sprintId], references: [id], onDelete: SetNull)
   changes       TaskChange[]
+  resourceAllocations ResourceAllocation[]
 
   @@index([tenantId])
   @@index([projectId])
@@ -275,6 +278,7 @@ model Employee {
   tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   skills      EmployeeSkill[]
   capacities  Capacity[]
+  resourceAllocations ResourceAllocation[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -335,6 +339,33 @@ model Capacity {
   @@index([effectiveFrom])
   @@index([deletedAt])
   @@map("capacities")
+}
+
+model ResourceAllocation {
+  id                     String       @id @default(uuid())
+  tenantId               String       @map("tenant_id")
+  employeeId             String       @map("employee_id")
+  projectId              String       @map("project_id")
+  taskId                 String?      @map("task_id")
+  weekStart              DateTime     @map("week_start")
+  plannedHours           Decimal      @map("planned_hours") @db.Decimal(10, 2)
+  availableHoursOverride Decimal?     @map("available_hours_override") @db.Decimal(10, 2)
+  isOverloaded           Boolean      @default(false) @map("is_overloaded")
+  createdAt              DateTime     @default(now()) @map("created_at")
+  updatedAt              DateTime     @updatedAt @map("updated_at")
+  deletedAt              DateTime?    @map("deleted_at")
+  tenant                 Tenant       @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  employee               Employee     @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  project                Project      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  task                   BacklogTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([projectId])
+  @@index([taskId])
+  @@index([weekStart])
+  @@index([deletedAt])
+  @@map("resource_allocations")
 }
 
 model RefreshToken {

@@ -418,4 +418,56 @@ describeWithDatabase("Tenant-isolated Prisma client", () => {
       })
     ).resolves.toHaveLength(2);
   });
+
+  it("rejects resource allocations linked to another tenant's employee or project", async () => {
+    const suffix = randomUUID();
+    const tenantA = await systemPrisma.tenant.create({
+      data: { name: "Tenant A", slug: `tenant-a-allocation-${suffix}` }
+    });
+    const tenantB = await systemPrisma.tenant.create({
+      data: { name: "Tenant B", slug: `tenant-b-allocation-${suffix}` }
+    });
+    const tenantBCustomer = await systemPrisma.customer.create({
+      data: { tenantId: tenantB.id, name: `Tenant B Allocation Customer ${suffix}` }
+    });
+    const tenantBEmployee = await systemPrisma.employee.create({
+      data: {
+        tenantId: tenantB.id,
+        name: "Tenant B Allocation Employee",
+        costRate: new Prisma.Decimal("100.00")
+      }
+    });
+    const tenantBProject = await systemPrisma.project.create({
+      data: {
+        tenantId: tenantB.id,
+        customerId: tenantBCustomer.id,
+        name: `Tenant B Allocation Project ${suffix}`,
+        projectManagerId: randomUUID()
+      }
+    });
+
+    await expect(
+      runWithTenantContext({ tenantId: tenantA.id }, () =>
+        tenantPrisma.resourceAllocation.create({
+          data: {
+            tenantId: tenantA.id,
+            employeeId: tenantBEmployee.id,
+            projectId: tenantBProject.id,
+            weekStart: new Date("2026-08-03T00:00:00.000Z"),
+            plannedHours: new Prisma.Decimal("8.00")
+          }
+        })
+      )
+    ).rejects.toBeInstanceOf(ForbiddenTenantAccessError);
+
+    await expect(
+      systemPrisma.auditLog.findMany({
+        where: {
+          tenantId: tenantA.id,
+          action: "CROSS_TENANT_ACCESS_DENIED",
+          entityType: "ResourceAllocation"
+        }
+      })
+    ).resolves.toHaveLength(1);
+  });
 });

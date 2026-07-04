@@ -7,10 +7,13 @@
     "pnpm": ">=11.9.0"
   },
   "scripts": {
-    "build": "pnpm --filter @codeworks/shared build && pnpm --filter @codeworks/api build && pnpm --filter @codeworks/web build",
+    "build": "pnpm db:generate && pnpm --filter @codeworks/shared build && pnpm --filter @codeworks/api build && pnpm --filter @codeworks/web build",
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
     "test": "pnpm test:workspace && pnpm test:unit && pnpm test:e2e",
     "test:workspace": "node --test tests/*.test.mjs",
     "test:unit": "pnpm --filter @codeworks/shared test && pnpm --filter @codeworks/api test && pnpm --filter @codeworks/web test",
@@ -25,11 +28,16 @@
     "@typescript-eslint/eslint-plugin": "8.62.1",
     "@typescript-eslint/parser": "8.62.1",
     "@vitejs/plugin-react": "6.0.3",
+    "dotenv": "17.2.3",
     "eslint": "10.6.0",
     "prettier": "3.9.4",
+    "prisma": "6.19.2",
     "tsx": "4.23.0",
     "typescript": "6.0.3",
     "vite": "8.1.3",
     "vitest": "4.1.9"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.2"
   }
 }

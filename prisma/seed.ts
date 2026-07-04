@@ -1,8 +1,8 @@
 import { Prisma } from "@prisma/client";
 
-import { createPrismaClient } from "../apps/api/src/platform/database/prisma.client.js";
+import { createSystemPrismaClient } from "../apps/api/src/platform/database/prisma.client.js";
 
-const prisma = createPrismaClient();
+const prisma = createSystemPrismaClient();
 
 async function main() {
   const tenant = await prisma.tenant.upsert({

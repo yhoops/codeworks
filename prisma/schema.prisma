@@ -17,8 +17,25 @@ model Tenant {
   updatedBy String?   @map("updated_by")
   deletedAt DateTime? @map("deleted_at")
   budgets   Budget[]
+  auditLogs AuditLog[]
 
   @@map("tenants")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  actorUserId String?  @map("actor_user_id")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  details     Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
 }
 
 model Budget {

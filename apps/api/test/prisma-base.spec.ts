@@ -1,34 +1,31 @@
 import { Prisma } from "@prisma/client";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
+import { afterAll, describe, expect, it } from "vitest";
 
-import { createPrismaClient } from "../src/platform/database/prisma.client.js";
+import { createSystemPrismaClient } from "../src/platform/database/prisma.client.js";
 
 const describeWithDatabase = process.env.DATABASE_URL ? describe : describe.skip;
 
 describeWithDatabase("Prisma base contract", () => {
-  const prisma = createPrismaClient();
-
-  beforeEach(async () => {
-    await prisma.budget.deleteMany();
-    await prisma.tenant.deleteMany();
-  });
+  const prisma = createSystemPrismaClient();
 
   afterAll(async () => {
     await prisma.$disconnect();
   });
 
   it("stores money as Decimal and defaults currency to CNY", async () => {
+    const suffix = randomUUID();
     const tenant = await prisma.tenant.create({
       data: {
         name: "Contract Test Tenant",
-        slug: "contract-test"
+        slug: `contract-test-${suffix}`
       }
     });
 
     const budget = await prisma.budget.create({
       data: {
         tenantId: tenant.id,
-        name: "Implementation Budget",
+        name: `Implementation Budget ${suffix}`,
         amount: new Prisma.Decimal("12345.67")
       }
     });
@@ -39,17 +36,18 @@ describeWithDatabase("Prisma base contract", () => {
   });
 
   it("excludes soft-deleted budgets from default reads", async () => {
+    const suffix = randomUUID();
     const tenant = await prisma.tenant.create({
       data: {
         name: "Soft Delete Tenant",
-        slug: "soft-delete-test"
+        slug: `soft-delete-test-${suffix}`
       }
     });
 
     const budget = await prisma.budget.create({
       data: {
         tenantId: tenant.id,
-        name: "Hidden Budget",
+        name: `Hidden Budget ${suffix}`,
         amount: new Prisma.Decimal("88.00")
       }
     });

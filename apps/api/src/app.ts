@@ -5,6 +5,7 @@ import { AppModule } from "./app.module.js";
 
 export async function createApp(): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule, {
+    abortOnError: false,
     logger: false
   });
 

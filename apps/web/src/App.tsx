@@ -1,312 +1,60 @@
+/**
+ * 前端应用路由装配入口。
+ * App 只负责 session gate、路由分支和页面级组件组合，数据加载与业务动作由 hooks 承担，
+ * 这样后续 pages/components 拆分可以在稳定路由壳上继续推进。
+ * 依赖：hooks 与纯视图组件；被用于：main.tsx。
+ */
 import { APP_NAME } from "@codeworks/shared";
-import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
 
-import {
-  clearStoredSession,
-  createApiClient,
-  persistSession,
-  readStoredSession
-} from "./api/client.js";
-import type {
-  AuthSession,
-  BoardColumn,
-  CoreTimeEntry,
-  CoreWorkspace,
-  DashboardData
-} from "./api/types.js";
+import { Board } from "./components/Board.js";
+import { FinanceCanvas } from "./components/FinanceCanvas.js";
+import { ShellRail } from "./components/ShellRail.js";
+import { useDashboard } from "./hooks/useDashboard.js";
+import { useSession } from "./hooks/useSession.js";
+import { useWorkspace } from "./hooks/useWorkspace.js";
 import "./styles.css";
 
-const boardColumns: Array<{ id: BoardColumn; label: string }> = [
-  { id: "TODO", label: "Todo" },
-  { id: "IN_PROGRESS", label: "In Progress" },
-  { id: "REVIEW", label: "Review" },
-  { id: "DONE", label: "Done" }
-];
-
 export function App() {
-  const [route, setRoute] = useState(() => window.location.pathname);
-  const [session, setSessionState] = useState<AuthSession | null>(() =>
-    readStoredSession()
-  );
-  const [tenantSlug, setTenantSlug] = useState("demo");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [status, setStatus] = useState("准备连接 Codeworks API");
-  const [workspace, setWorkspace] = useState<CoreWorkspace | null>(null);
-  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
-  const [actualHours, setActualHours] = useState("8");
-  const [plannedHours, setPlannedHours] = useState("40");
-  const [utilization, setUtilization] = useState<{
-    plannedHours: number;
-    availableHours: number;
-    isOverloaded: boolean;
-  } | null>(null);
-
-  const navigate = (path: string) => {
-    window.history.pushState(null, "", path);
-    setRoute(path);
-  };
-
-  const setSession = (nextSession: AuthSession) => {
-    persistSession(nextSession);
-    setSessionState(nextSession);
-  };
-
-  const clearSession = () => {
-    clearStoredSession();
-    setSessionState(null);
-  };
-
-  const api = createApiClient({
+  const {
+    api,
     clearSession,
-    getSession: () => readStoredSession(),
-    onReloginRequired: () => {
-      setStatus("会话已过期，请重新登录");
-      navigate("/login");
-    },
-    setSession
+    email,
+    handleLogin,
+    navigate,
+    password,
+    route,
+    session,
+    setEmail,
+    setPassword,
+    setStatus,
+    setTenantSlug,
+    status,
+    tenantSlug,
+    verifySession
+  } = useSession();
+  const { dashboard, loadDashboard } = useDashboard({
+    api,
+    route,
+    session,
+    setStatus
   });
-
-  useEffect(() => {
-    const syncRoute = () => setRoute(window.location.pathname);
-    window.addEventListener("popstate", syncRoute);
-    return () => window.removeEventListener("popstate", syncRoute);
-  }, []);
-
-  useEffect(() => {
-    if (!session && route !== "/login") {
-      navigate("/login");
-      return;
-    }
-
-    if (session && route === "/login") {
-      navigate("/workspace");
-    }
-  }, [route, session]);
-
-  useEffect(() => {
-    if (!session || route !== "/dashboard") {
-      return;
-    }
-
-    let ignore = false;
-    void loadDashboard(ignore);
-
-    return () => {
-      ignore = true;
-    };
-  }, [route, session]);
-
-  useEffect(() => {
-    if (!session || route !== "/projects") {
-      return;
-    }
-
-    let ignore = false;
-    setStatus("正在加载核心页面");
-    api
-      .workspace()
-      .then((result) => {
-        if (!ignore) {
-          setWorkspace(result.data);
-          setStatus("核心页面已加载");
-        }
-      })
-      .catch(() => {
-        if (!ignore) {
-          setStatus("核心页面加载失败");
-        }
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, [route, session]);
-
-  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setStatus("正在登录");
-
-    try {
-      await api.login(email, password, tenantSlug);
-      setStatus("登录成功");
-      navigate("/workspace");
-    } catch {
-      setStatus("登录失败，请检查账号或网络");
-    }
-  };
-
-  const verifySession = async () => {
-    setStatus("正在校验会话");
-
-    try {
-      const result = await api.me();
-      setStatus(result.refreshed ? "会话已刷新" : `已连接 ${result.data.name}`);
-    } catch {
-      setStatus("会话已过期，请重新登录");
-    }
-  };
-
-  const taskWithTimeEntry = workspace?.tasks.find((task) =>
-    workspace.timeEntries.some((entry) => entry.taskId === task.id)
-  );
-  const primaryTask = taskWithTimeEntry ?? workspace?.tasks[0];
-  const primaryEmployee =
-    workspace?.employees.find((employee) => employee.id === primaryTask?.assigneeUserId) ??
-    workspace?.employees[0];
-  const primaryProject = primaryTask
-    ? workspace?.projects.find((project) => project.id === primaryTask.projectId)
-    : workspace?.projects[0];
-  const latestTimeEntry = primaryTask
-    ? workspace?.timeEntries.find((entry) => entry.taskId === primaryTask.id)
-    : undefined;
-
-  const mergeTimeEntry = (entry: CoreTimeEntry) => {
-    setWorkspace((current) => {
-      if (!current) {
-        return current;
-      }
-
-      return {
-        ...current,
-        timeEntries: [
-          entry,
-          ...current.timeEntries.filter((candidate) => candidate.id !== entry.id)
-        ]
-      };
-    });
-  };
-
-  const moveTask = async (taskId: string, boardColumn: BoardColumn) => {
-    setStatus("同步中");
-    setWorkspace((current) => {
-      if (!current) {
-        return current;
-      }
-
-      return {
-        ...current,
-        tasks: current.tasks.map((task) =>
-          task.id === taskId
-            ? { ...task, boardColumn, status: boardColumn }
-            : task
-        )
-      };
-    });
-
-    try {
-      const result = await api.moveTask(taskId, boardColumn);
-      setWorkspace((current) => {
-        if (!current) {
-          return current;
-        }
-
-        return {
-          ...current,
-          tasks: current.tasks.map((task) =>
-            task.id === taskId ? result.data.task : task
-          ),
-          timeEntries: result.data.timeEntry
-            ? [
-                result.data.timeEntry,
-                ...current.timeEntries.filter(
-                  (entry) => entry.id !== result.data.timeEntry?.id
-                )
-              ]
-            : current.timeEntries
-        };
-      });
-      setStatus("已同步");
-    } catch {
-      setStatus("同步失败，请刷新后重试");
-    }
-  };
-
-  const correctTime = async () => {
-    if (!primaryTask || !primaryEmployee) {
-      setStatus("当前任务缺少负责人，无法校正工时");
-      return;
-    }
-
-    const hours = Number(actualHours);
-    setStatus("正在校正工时");
-
-    try {
-      const result = await api.correctTimeEntry({
-        employeeId: primaryEmployee.id,
-        hours,
-        note: "前端校正",
-        taskId: primaryTask.id
-      });
-      mergeTimeEntry(result.data.timeEntry);
-      setStatus("成本信号已更新");
-    } catch {
-      setStatus("工时校正失败");
-    }
-  };
-
-  const scheduleAllocation = async () => {
-    if (!primaryTask || !primaryEmployee || !primaryProject) {
-      setStatus("缺少任务或项目，无法保存排期");
-      return;
-    }
-
-    setStatus("正在保存排期");
-
-    try {
-      const result = await api.scheduleAllocation({
-        employeeId: primaryEmployee.id,
-        plannedHours: Number(plannedHours),
-        projectId: primaryProject.id,
-        taskId: primaryTask.id,
-        weekStart: "2026-07-06T00:00:00.000Z"
-      });
-      setUtilization(result.data.utilization);
-      setWorkspace((current) => {
-        if (!current) {
-          return current;
-        }
-
-        return {
-          ...current,
-          allocations: [
-            result.data.allocation,
-            ...current.allocations.filter(
-              (allocation) => allocation.id !== result.data.allocation.id
-            )
-          ]
-        };
-      });
-      setStatus(result.data.utilization.isOverloaded ? "产能过载" : "排期已保存");
-    } catch {
-      setStatus("排期保存失败");
-    }
-  };
-
-  const loadDashboard = async (ignore = false) => {
-    setStatus("正在刷新看板");
-
-    try {
-      const result = await api.dashboard();
-      if (!ignore) {
-        setDashboard(result.data);
-        setStatus("看板已刷新");
-      }
-    } catch {
-      if (!ignore) {
-        setStatus("看板刷新失败");
-      }
-    }
-  };
-
-  const money = (value: number) =>
-    new Intl.NumberFormat("zh-CN", {
-      currency: "CNY",
-      maximumFractionDigits: 0,
-      style: "currency"
-    }).format(value);
+  const {
+    actualHours,
+    correctTime,
+    draggingTaskId,
+    latestTimeEntry,
+    moveTask,
+    plannedHours,
+    primaryEmployee,
+    primaryProject,
+    primaryTask,
+    scheduleAllocation,
+    setActualHours,
+    setDraggingTaskId,
+    setPlannedHours,
+    utilization,
+    workspace
+  } = useWorkspace({ api, route, session, setStatus });
 
   if (!session || route === "/login") {
     return (
@@ -385,38 +133,12 @@ export function App() {
                 <span>{primaryEmployee?.name ?? "未分配负责人"}</span>
               </section>
 
-              <section className="board-grid" aria-label="Scrum 看板">
-                {boardColumns.map((column) => (
-                  <section
-                    aria-label={column.label}
-                    className="board-column"
-                    key={column.id}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={() => {
-                      if (draggingTaskId) {
-                        void moveTask(draggingTaskId, column.id);
-                        setDraggingTaskId(null);
-                      }
-                    }}
-                    role="region"
-                  >
-                    <h2>{column.label}</h2>
-                    {workspace.tasks
-                      .filter((task) => task.boardColumn === column.id)
-                      .map((task) => (
-                        <article
-                          className="task-ticket"
-                          draggable
-                          key={task.id}
-                          onDragStart={() => setDraggingTaskId(task.id)}
-                        >
-                          <strong>{task.title}</strong>
-                          <span>{task.estimateHours}h estimate</span>
-                        </article>
-                      ))}
-                  </section>
-                ))}
-              </section>
+              <Board
+                draggingTaskId={draggingTaskId}
+                moveTask={moveTask}
+                setDraggingTaskId={setDraggingTaskId}
+                workspace={workspace}
+              />
 
               <section className="operations-panel" aria-label="工时与排期">
                 <div>
@@ -474,18 +196,6 @@ export function App() {
 
   if (route === "/dashboard") {
     const project = dashboard?.projects[0];
-    const costPercent = project?.revenue
-      ? Math.min(140, Math.round((project.totalCost / project.revenue) * 100))
-      : 0;
-    const utilizationPercent = project?.utilization.availableHours
-      ? Math.min(
-          140,
-          Math.round(
-            (project.utilization.plannedHours / project.utilization.availableHours) *
-              100
-          )
-        )
-      : 0;
 
     return (
       <main className="workspace-shell">
@@ -506,42 +216,7 @@ export function App() {
               {status}
             </p>
           ) : (
-            <section className="finance-canvas" aria-label="盈亏图表">
-              <div className="finance-headline">
-                <strong>{project.name}</strong>
-                {project.overBudget ? <span className="warning-chip">超预算</span> : null}
-              </div>
-
-              <div className="metric-row">
-                <span>预算收入</span>
-                <strong>{money(project.revenue)}</strong>
-              </div>
-              <div className="metric-row">
-                <span>实际成本</span>
-                <strong>{money(project.totalCost)}</strong>
-              </div>
-              <div className="bullet-chart" aria-label="预算 vs 实际">
-                <span style={{ width: `${costPercent}%` }} />
-              </div>
-
-              <div className="metric-row">
-                <span>毛利</span>
-                <strong>{money(project.grossProfit)}</strong>
-              </div>
-              <div className="metric-row">
-                <span>产能利用率</span>
-                <strong>
-                  {project.utilization.plannedHours}h / {project.utilization.availableHours}h
-                </strong>
-              </div>
-              <div className="bullet-chart utilization" aria-label="产能利用率图表">
-                <span style={{ width: `${utilizationPercent}%` }} />
-              </div>
-
-              <p className="status-line" role="status">
-                {status}
-              </p>
-            </section>
+            <FinanceCanvas project={project} status={status} />
           )}
         </section>
       </main>
@@ -580,22 +255,5 @@ export function App() {
         </p>
       </section>
     </main>
-  );
-}
-
-function ShellRail() {
-  return (
-    <aside className="rail" aria-label="主导航">
-      <strong>{APP_NAME}</strong>
-      <nav>
-        <a aria-current="page" href="/workspace">
-          经营中枢
-        </a>
-        <a href="/projects">项目</a>
-        <a href="/dashboard">盈亏</a>
-        <span>工时</span>
-        <span>排期</span>
-      </nav>
-    </aside>
   );
 }

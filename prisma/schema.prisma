@@ -36,6 +36,7 @@ model Tenant {
   timeEntries TimeEntry[]
   costEntries CostEntry[]
   pnlSnapshots PnLSnapshot[]
+  attachments Attachment[]
 
   @@map("tenants")
 }
@@ -493,4 +494,28 @@ model PnLSnapshot {
   @@index([projectId])
   @@index([refreshedAt])
   @@map("pnl_snapshots")
+}
+
+model Attachment {
+  id              String    @id @default(uuid())
+  tenantId        String    @map("tenant_id")
+  targetType      String    @map("target_type")
+  targetId        String    @map("target_id")
+  fileName        String    @map("file_name")
+  contentType     String    @map("content_type")
+  sizeBytes       Int       @map("size_bytes")
+  storageProvider String    @map("storage_provider")
+  storageKey      String    @map("storage_key")
+  checksumSha256  String?   @map("checksum_sha256")
+  createdByUserId String?   @map("created_by_user_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([targetType, targetId])
+  @@index([storageProvider])
+  @@index([deletedAt])
+  @@map("attachments")
 }

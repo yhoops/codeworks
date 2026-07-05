@@ -7,14 +7,14 @@ import {
   createApiClient,
   persistSession,
   readStoredSession
-} from "./api-client.js";
+} from "./api/client.js";
 import type {
   AuthSession,
   BoardColumn,
   CoreTimeEntry,
   CoreWorkspace,
   DashboardData
-} from "./api-client.js";
+} from "./api/types.js";
 import "./styles.css";
 
 const boardColumns: Array<{ id: BoardColumn; label: string }> = [

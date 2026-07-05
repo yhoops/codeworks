@@ -1,3 +1,9 @@
+/**
+ * Sprint 生命周期编排服务。
+ * 保留 Sprint/任务创建、任务移动和 burndown 查询的数据流编排，
+ * 看板状态、估算和 task.changed 载荷细节委派给 task-board.util。
+ * 依赖：系统 Prisma 客户端、领域事件和工时同步；被用于核心工作流控制器与项目测试。
+ */
 import {
   BadRequestException,
   ForbiddenException,
@@ -5,7 +11,7 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import type { OnModuleDestroy } from "@nestjs/common";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 import {
   assertPermission,
@@ -18,15 +24,17 @@ import {
   TransactionalDomainEvents
 } from "../../platform/events/domain-event-bus.js";
 import { syncDerivedTimeEntryFromTaskChange } from "../timesheets/time-entry.service.js";
+import {
+  type BoardColumn,
+  buildTaskChangeData,
+  buildTaskChangedEvent,
+  getRemainingEstimateHours,
+  optionalText,
+  requireEstimate,
+  statusForColumn
+} from "./task-board.util.js";
 
-export type BoardColumn = "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
-
-const BOARD_STATUS: Record<BoardColumn, BoardColumn> = {
-  TODO: "TODO",
-  IN_PROGRESS: "IN_PROGRESS",
-  REVIEW: "REVIEW",
-  DONE: "DONE"
-};
+export type { BoardColumn } from "./task-board.util.js";
 
 @Injectable()
 export class SprintService implements OnModuleDestroy {
@@ -60,7 +68,7 @@ export class SprintService implements OnModuleDestroy {
         tenantId: input.tenantId,
         projectId: input.projectId,
         name: this.requireText(input.name, "Sprint name is required"),
-        goal: this.optionalText(input.goal),
+        goal: optionalText(input.goal),
         startDate: input.startDate,
         endDate: input.endDate
       }
@@ -86,7 +94,7 @@ export class SprintService implements OnModuleDestroy {
       await this.requireSprint(input.tenantId, input.sprintId, input.projectId);
     }
 
-    const estimateHours = this.requireEstimate(input.estimateHours);
+    const estimateHours = requireEstimate(input.estimateHours);
 
     return this.events.runInTransaction(this.prisma, async (tx, buffer) => {
       const task = await tx.backlogTask.create({
@@ -95,39 +103,36 @@ export class SprintService implements OnModuleDestroy {
           projectId: input.projectId,
           sprintId: input.sprintId,
           title: this.requireText(input.title, "Task title is required"),
-          description: this.optionalText(input.description),
+          description: optionalText(input.description),
           estimateHours,
           status: "TODO",
           boardColumn: "TODO",
           assigneeUserId: input.assigneeUserId
         }
       });
-      const remainingEstimateHours = await this.getRemainingEstimateHours(tx, {
+      const remainingEstimateHours = await getRemainingEstimateHours(tx, {
         tenantId: input.tenantId,
         sprintId: input.sprintId
       });
 
       await tx.taskChange.create({
-        data: {
+        data: buildTaskChangeData({
           tenantId: input.tenantId,
           taskId: task.id,
           sprintId: input.sprintId,
           fromStatus: null,
           toStatus: "TODO",
           remainingEstimateHours
-        }
+        })
       });
-      buffer.record({
-        type: "task.changed",
+      buffer.record(buildTaskChangedEvent({
         tenantId: input.tenantId,
-        aggregateType: "Task",
-        aggregateId: task.id,
-        payload: {
-          fromStatus: null,
-          toStatus: "TODO",
-          remainingEstimateHours: remainingEstimateHours.toNumber()
-        }
-      });
+        taskId: task.id,
+        sprintId: input.sprintId,
+        fromStatus: null,
+        toStatus: "TODO",
+        remainingEstimateHours
+      }));
 
       return task;
     });
@@ -142,7 +147,7 @@ export class SprintService implements OnModuleDestroy {
     }
   ) {
     this.assertProjectWrite(actor, input.tenantId);
-    const toStatus = this.statusForColumn(input.boardColumn);
+    const toStatus = statusForColumn(input.boardColumn);
     const task = await this.requireTask(input.tenantId, input.taskId);
 
     return this.events.runInTransaction(this.prisma, async (tx, buffer) => {
@@ -153,32 +158,29 @@ export class SprintService implements OnModuleDestroy {
           boardColumn: input.boardColumn
         }
       });
-      const remainingEstimateHours = await this.getRemainingEstimateHours(tx, {
+      const remainingEstimateHours = await getRemainingEstimateHours(tx, {
         tenantId: input.tenantId,
         sprintId: task.sprintId
       });
 
       await tx.taskChange.create({
-        data: {
+        data: buildTaskChangeData({
           tenantId: input.tenantId,
           taskId: task.id,
           sprintId: task.sprintId,
           fromStatus: task.status,
           toStatus,
           remainingEstimateHours
-        }
+        })
       });
-      buffer.record({
-        type: "task.changed",
+      buffer.record(buildTaskChangedEvent({
         tenantId: input.tenantId,
-        aggregateType: "Task",
-        aggregateId: task.id,
-        payload: {
-          fromStatus: task.status,
-          toStatus,
-          remainingEstimateHours: remainingEstimateHours.toNumber()
-        }
-      });
+        taskId: task.id,
+        sprintId: task.sprintId,
+        fromStatus: task.status,
+        toStatus,
+        remainingEstimateHours
+      }));
       await syncDerivedTimeEntryFromTaskChange(tx, buffer, {
         tenantId: input.tenantId,
         task,
@@ -280,54 +282,12 @@ export class SprintService implements OnModuleDestroy {
     return task;
   }
 
-  private async getRemainingEstimateHours(
-    prisma: Pick<PrismaClient, "backlogTask">,
-    input: { tenantId: string; sprintId?: string | null }
-  ) {
-    if (!input.sprintId) {
-      return new Prisma.Decimal(0);
-    }
-
-    const tasks = await prisma.backlogTask.findMany({
-      where: {
-        tenantId: input.tenantId,
-        sprintId: input.sprintId,
-        deletedAt: null,
-        status: { not: "DONE" }
-      },
-      select: { estimateHours: true }
-    });
-
-    return tasks.reduce(
-      (sum, task) => sum.plus(task.estimateHours),
-      new Prisma.Decimal(0)
-    );
-  }
-
   private assertProjectWrite(actor: AuthzContext, tenantId: string) {
     if (actor.tenantId !== tenantId) {
       throw new ForbiddenException("Tenant access denied");
     }
 
     assertPermission(actor, "project.write");
-  }
-
-  private statusForColumn(boardColumn: BoardColumn) {
-    const status = BOARD_STATUS[boardColumn];
-
-    if (!status) {
-      throw new BadRequestException("Unsupported board column");
-    }
-
-    return status;
-  }
-
-  private requireEstimate(value: number) {
-    if (!Number.isFinite(value) || value < 0) {
-      throw new BadRequestException("Task estimate must be a non-negative number");
-    }
-
-    return new Prisma.Decimal(value.toFixed(2));
   }
 
   private requireText(value: string, message: string) {
@@ -338,10 +298,5 @@ export class SprintService implements OnModuleDestroy {
     }
 
     return normalized;
-  }
-
-  private optionalText(value: string | undefined) {
-    const normalized = value?.trim();
-    return normalized ? normalized : null;
   }
 }

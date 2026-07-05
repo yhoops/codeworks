@@ -686,6 +686,17 @@ export function createSystemPrismaClient() {
         async count({ args, query }) {
           return query(applyNotDeleted(args));
         }
+      },
+      timeEntry: {
+        async findMany({ args, query }) {
+          return query(applyNotDeleted(args));
+        },
+        async findFirst({ args, query }) {
+          return query(applyNotDeleted(args));
+        },
+        async count({ args, query }) {
+          return query(applyNotDeleted(args));
+        }
       }
     }
   });
@@ -1951,6 +1962,118 @@ export function createPrismaClient() {
                 where: { id },
                 select: { id: true, tenantId: true }
               })
+          );
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            create: applyTenantData(args.create, context.tenantId) as typeof args.create,
+            update: assertTenantData(args.update, context.tenantId) as typeof args.update
+          });
+        }
+      },
+      timeEntry: {
+        async create({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "TimeEntry", args.data);
+          await assertTaskTargetsTenant(prisma, context, "TimeEntry", args.data);
+          await assertEmployeeTargetsTenant(prisma, context, "TimeEntry", args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async createMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "TimeEntry", args.data);
+          await assertTaskTargetsTenant(prisma, context, "TimeEntry", args.data);
+          await assertEmployeeTargetsTenant(prisma, context, "TimeEntry", args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async findMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async findFirst({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async findUnique({ args, query }) {
+          const context = requireTenantContext();
+          const result = await query(args);
+
+          return assertTenantResult(prisma, context, "TimeEntry", result);
+        },
+        async count({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async update({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "TimeEntry", args.data);
+          await assertTaskTargetsTenant(prisma, context, "TimeEntry", args.data);
+          await assertEmployeeTargetsTenant(prisma, context, "TimeEntry", args.data);
+          await assertWhereTargetsTenant(prisma, context, "TimeEntry", args.where, (id) =>
+            prisma.timeEntry.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async updateMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "TimeEntry", args.data);
+          await assertTaskTargetsTenant(prisma, context, "TimeEntry", args.data);
+          await assertEmployeeTargetsTenant(prisma, context, "TimeEntry", args.data);
+
+          return query({
+            ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async delete({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertWhereTargetsTenant(prisma, context, "TimeEntry", args.where, (id) =>
+            prisma.timeEntry.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query(applyTenantSoftDeleteFilter(args, context.tenantId));
+        },
+        async deleteMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantSoftDeleteFilter(args, tenantId));
+        },
+        async upsert({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "TimeEntry", args.create);
+          await assertTenantDataForWrite(prisma, context, "TimeEntry", args.update);
+          await assertTaskTargetsTenant(prisma, context, "TimeEntry", args.create);
+          await assertTaskTargetsTenant(prisma, context, "TimeEntry", args.update);
+          await assertEmployeeTargetsTenant(prisma, context, "TimeEntry", args.create);
+          await assertEmployeeTargetsTenant(prisma, context, "TimeEntry", args.update);
+          await assertWhereTargetsTenant(prisma, context, "TimeEntry", args.where, (id) =>
+            prisma.timeEntry.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
           );
 
           return query({

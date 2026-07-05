@@ -17,6 +17,7 @@ import {
   type DomainEventBus,
   TransactionalDomainEvents
 } from "../../platform/events/domain-event-bus.js";
+import { syncDerivedTimeEntryFromTaskChange } from "../timesheets/time-entry.service.js";
 
 export type BoardColumn = "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
 
@@ -177,6 +178,11 @@ export class SprintService implements OnModuleDestroy {
           toStatus,
           remainingEstimateHours: remainingEstimateHours.toNumber()
         }
+      });
+      await syncDerivedTimeEntryFromTaskChange(tx, buffer, {
+        tenantId: input.tenantId,
+        task,
+        toStatus
       });
 
       return updated;

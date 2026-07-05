@@ -1,3 +1,8 @@
+/**
+ * 核心工作流控制器。
+ * 控制器负责路由、认证和服务委派；请求 DTO 与响应序列化在 core-workflow.dto 中维护。
+ * 依赖：认证、Sprint、工时、排期和 PnL 服务；被用于前端工作台与核心 E2E。
+ */
 import {
   Body,
   Controller,
@@ -14,9 +19,17 @@ import { PrismaClient } from "@prisma/client";
 import { createSystemPrismaClient } from "../../platform/database/prisma.client.js";
 import { PnlService } from "../costing/pnl.service.js";
 import { AuthService } from "../iam/auth/auth.service.js";
-import { SprintService, type BoardColumn } from "../projects/sprint.service.js";
+import { SprintService } from "../projects/sprint.service.js";
 import { AllocationService } from "../resourcing/allocation.service.js";
 import { TimeEntryService } from "../timesheets/time-entry.service.js";
+import {
+  type CorrectTimeEntryBody,
+  type MoveTaskBody,
+  type ScheduleAllocationBody,
+  serializeAllocation,
+  serializeTask,
+  serializeTimeEntry
+} from "./core-workflow.dto.js";
 
 @Controller("core")
 export class CoreWorkflowController {
@@ -100,14 +113,14 @@ export class CoreWorkflowController {
         name: project.name,
         status: project.status
       })),
-      tasks: tasks.map((task) => this.serializeTask(task)),
+      tasks: tasks.map((task) => serializeTask(task)),
       employees: employees.map((employee) => ({
         id: employee.id,
         name: employee.name,
         email: employee.email
       })),
-      timeEntries: timeEntries.map((entry) => this.serializeTimeEntry(entry)),
-      allocations: allocations.map((allocation) => this.serializeAllocation(allocation))
+      timeEntries: timeEntries.map((entry) => serializeTimeEntry(entry)),
+      allocations: allocations.map((allocation) => serializeAllocation(allocation))
     };
   }
 
@@ -115,7 +128,7 @@ export class CoreWorkflowController {
   async moveTask(
     @Headers("authorization") authorization: string | undefined,
     @Param("taskId") taskId: string,
-    @Body() body: { boardColumn: BoardColumn }
+    @Body() body: MoveTaskBody
   ) {
     const actor = await this.requireActor(authorization);
     const task = await this.sprintService.moveTask(actor, {
@@ -133,21 +146,15 @@ export class CoreWorkflowController {
     });
 
     return {
-      task: this.serializeTask(task),
-      timeEntry: timeEntry ? this.serializeTimeEntry(timeEntry) : null
+      task: serializeTask(task),
+      timeEntry: timeEntry ? serializeTimeEntry(timeEntry) : null
     };
   }
 
   @Patch("time-entries")
   async correctTimeEntry(
     @Headers("authorization") authorization: string | undefined,
-    @Body()
-    body: {
-      taskId: string;
-      employeeId: string;
-      hours: number;
-      note?: string;
-    }
+    @Body() body: CorrectTimeEntryBody
   ) {
     const actor = await this.requireActor(authorization);
     const timeEntry = await this.timeEntryService.correctTimeEntry(actor, {
@@ -155,21 +162,13 @@ export class CoreWorkflowController {
       ...body
     });
 
-    return { timeEntry: this.serializeTimeEntry(timeEntry) };
+    return { timeEntry: serializeTimeEntry(timeEntry) };
   }
 
   @Post("allocations")
   async scheduleAllocation(
     @Headers("authorization") authorization: string | undefined,
-    @Body()
-    body: {
-      employeeId: string;
-      projectId: string;
-      taskId?: string;
-      weekStart: string;
-      plannedHours: number;
-      availableHoursOverride?: number;
-    }
+    @Body() body: ScheduleAllocationBody
   ) {
     const actor = await this.requireActor(authorization);
     const weekStart = new Date(body.weekStart);
@@ -189,7 +188,7 @@ export class CoreWorkflowController {
     });
 
     return {
-      allocation: this.serializeAllocation(allocation),
+      allocation: serializeAllocation(allocation),
       utilization
     };
   }
@@ -261,65 +260,4 @@ export class CoreWorkflowController {
     };
   }
 
-  private serializeTask(task: {
-    id: string;
-    projectId: string;
-    sprintId: string | null;
-    title: string;
-    status: string;
-    boardColumn: string;
-    estimateHours: { toNumber(): number };
-    assigneeUserId: string | null;
-  }) {
-    return {
-      id: task.id,
-      projectId: task.projectId,
-      sprintId: task.sprintId,
-      title: task.title,
-      status: task.status,
-      boardColumn: task.boardColumn,
-      estimateHours: task.estimateHours.toNumber(),
-      assigneeUserId: task.assigneeUserId
-    };
-  }
-
-  private serializeTimeEntry(entry: {
-    id: string;
-    taskId: string;
-    employeeId: string;
-    hours: { toNumber(): number };
-    source: string;
-    note: string | null;
-  }) {
-    return {
-      id: entry.id,
-      taskId: entry.taskId,
-      employeeId: entry.employeeId,
-      hours: entry.hours.toNumber(),
-      source: entry.source,
-      note: entry.note
-    };
-  }
-
-  private serializeAllocation(allocation: {
-    id: string;
-    employeeId: string;
-    projectId: string;
-    taskId: string | null;
-    weekStart: Date;
-    plannedHours: { toNumber(): number };
-    availableHoursOverride: { toNumber(): number } | null;
-    isOverloaded: boolean;
-  }) {
-    return {
-      id: allocation.id,
-      employeeId: allocation.employeeId,
-      projectId: allocation.projectId,
-      taskId: allocation.taskId,
-      weekStart: allocation.weekStart.toISOString(),
-      plannedHours: allocation.plannedHours.toNumber(),
-      availableHoursOverride: allocation.availableHoursOverride?.toNumber() ?? null,
-      isOverloaded: allocation.isOverloaded
-    };
-  }
 }

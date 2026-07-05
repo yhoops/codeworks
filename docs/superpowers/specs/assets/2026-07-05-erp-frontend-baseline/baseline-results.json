@@ -1,0 +1,215 @@
+{
+  "capturedAt": "2026-07-05T06:42:53.120Z",
+  "baseUrl": "http://127.0.0.1:5174",
+  "apiUrl": "http://127.0.0.1:3101",
+  "results": [
+    {
+      "route": "login",
+      "path": "/login",
+      "viewport": "desktop",
+      "size": "1440x1024",
+      "httpStatus": 200,
+      "finalUrl": "http://127.0.0.1:5174/login",
+      "screenshot": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-baseline/desktop-login.png",
+      "expectedHeadingFound": true,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "metrics": {
+        "h1": [
+          "码程 / Codeworks"
+        ],
+        "bodyText": "PSA + 轻 ERP\n\n码程 / Codeworks\n\n将项目、工时、排期与盈亏收束进同一个经营节奏。\n\nSECURE WORKSPACE\n\n登录 Codeworks\n租户\n邮箱\n密码\n进入工作台\n\n准备连接 Codeworks API",
+        "clientWidth": 1440,
+        "clientHeight": 1024,
+        "scrollWidth": 1440,
+        "scrollHeight": 1024,
+        "bodyScrollWidth": 1440,
+        "hasHorizontalOverflow": false,
+        "visibleOffscreen": []
+      }
+    },
+    {
+      "route": "workspace",
+      "path": "/workspace",
+      "viewport": "desktop",
+      "size": "1440x1024",
+      "httpStatus": 200,
+      "finalUrl": "http://127.0.0.1:5174/workspace",
+      "screenshot": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-baseline/desktop-workspace.png",
+      "expectedHeadingFound": true,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "metrics": {
+        "h1": [
+          "经营中枢"
+        ],
+        "bodyText": "码程 / Codeworks\n经营中枢\n项目\n盈亏\n工时\n排期\n\nAUTHENTICATED SHELL\n\n经营中枢\n\nDemo Project Manager 已进入 demo，后续业务页面复用此认证态与 API client。\n\n校验会话\n退出\n\n准备连接 Codeworks API",
+        "clientWidth": 1440,
+        "clientHeight": 1024,
+        "scrollWidth": 1440,
+        "scrollHeight": 1024,
+        "bodyScrollWidth": 1440,
+        "hasHorizontalOverflow": false,
+        "visibleOffscreen": []
+      }
+    },
+    {
+      "route": "projects",
+      "path": "/projects",
+      "viewport": "desktop",
+      "size": "1440x1024",
+      "httpStatus": 200,
+      "finalUrl": "http://127.0.0.1:5174/projects",
+      "screenshot": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-baseline/desktop-projects.png",
+      "expectedHeadingFound": true,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "metrics": {
+        "h1": [
+          "项目作战台"
+        ],
+        "bodyText": "码程 / Codeworks\n经营中枢\n项目\n盈亏\n工时\n排期\n\nPROJECT OPERATING SURFACE\n\n项目作战台\n\n看板、实际工时和排期在同一页闭环，所有操作通过 Core API 同步。\n\nAcme ERP Launch\n3 tasks\nLin Demo\nTODO\nPrepare go-live readiness\n16h estimate\nIN PROGRESS\nBuild delivery workflow\n28h estimate\nREVIEW\nDONE\nConfirm implementation scope\n12h estimate\n工时校正\n\n实际工时 6.5h\n\n实际工时\n校正工时\n资源排期\n\n本周容量等待排期\n\n计划排期\n保存排期\n\n核心页面已加载",
+        "clientWidth": 1440,
+        "clientHeight": 1024,
+        "scrollWidth": 1440,
+        "scrollHeight": 1130,
+        "bodyScrollWidth": 1440,
+        "hasHorizontalOverflow": false,
+        "visibleOffscreen": []
+      }
+    },
+    {
+      "route": "dashboard",
+      "path": "/dashboard",
+      "viewport": "desktop",
+      "size": "1440x1024",
+      "httpStatus": 200,
+      "finalUrl": "http://127.0.0.1:5174/dashboard",
+      "screenshot": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-baseline/desktop-dashboard.png",
+      "expectedHeadingFound": true,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "metrics": {
+        "h1": [
+          "实时盈亏"
+        ],
+        "bodyText": "码程 / Codeworks\n经营中枢\n项目\n盈亏\n工时\n排期\n\nREALTIME PNL\n\n实时盈亏\n\n用同一张经营画布对齐预算、实际成本、毛利和产能压力。\n\n刷新看板\nAcme ERP Launch\n预算收入\n¥100,000\n实际成本\n¥2,080\n毛利\n¥97,920\n产能利用率\n44h / 40h\n\n看板已刷新",
+        "clientWidth": 1440,
+        "clientHeight": 1024,
+        "scrollWidth": 1440,
+        "scrollHeight": 1024,
+        "bodyScrollWidth": 1440,
+        "hasHorizontalOverflow": false,
+        "visibleOffscreen": [
+          {
+            "tag": "span",
+            "label": "",
+            "left": 356,
+            "right": 1469,
+            "width": 1113
+          }
+        ]
+      }
+    },
+    {
+      "route": "login",
+      "path": "/login",
+      "viewport": "mobile",
+      "size": "390x844",
+      "httpStatus": 200,
+      "finalUrl": "http://127.0.0.1:5174/login",
+      "screenshot": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-baseline/mobile-login.png",
+      "expectedHeadingFound": true,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "metrics": {
+        "h1": [
+          "码程 / Codeworks"
+        ],
+        "bodyText": "PSA + 轻 ERP\n\n码程 / Codeworks\n\n将项目、工时、排期与盈亏收束进同一个经营节奏。\n\nSECURE WORKSPACE\n\n登录 Codeworks\n租户\n邮箱\n密码\n进入工作台\n\n准备连接 Codeworks API",
+        "clientWidth": 390,
+        "clientHeight": 844,
+        "scrollWidth": 390,
+        "scrollHeight": 855,
+        "bodyScrollWidth": 390,
+        "hasHorizontalOverflow": false,
+        "visibleOffscreen": []
+      }
+    },
+    {
+      "route": "workspace",
+      "path": "/workspace",
+      "viewport": "mobile",
+      "size": "390x844",
+      "httpStatus": 200,
+      "finalUrl": "http://127.0.0.1:5174/workspace",
+      "screenshot": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-baseline/mobile-workspace.png",
+      "expectedHeadingFound": true,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "metrics": {
+        "h1": [
+          "经营中枢"
+        ],
+        "bodyText": "码程 / Codeworks\n经营中枢\n项目\n盈亏\n工时\n排期\n\nAUTHENTICATED SHELL\n\n经营中枢\n\nDemo Project Manager 已进入 demo，后续业务页面复用此认证态与 API client。\n\n校验会话\n退出\n\n准备连接 Codeworks API",
+        "clientWidth": 390,
+        "clientHeight": 844,
+        "scrollWidth": 390,
+        "scrollHeight": 844,
+        "bodyScrollWidth": 390,
+        "hasHorizontalOverflow": false,
+        "visibleOffscreen": []
+      }
+    },
+    {
+      "route": "projects",
+      "path": "/projects",
+      "viewport": "mobile",
+      "size": "390x844",
+      "httpStatus": 200,
+      "finalUrl": "http://127.0.0.1:5174/projects",
+      "screenshot": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-baseline/mobile-projects.png",
+      "expectedHeadingFound": true,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "metrics": {
+        "h1": [
+          "项目作战台"
+        ],
+        "bodyText": "码程 / Codeworks\n经营中枢\n项目\n盈亏\n工时\n排期\n\nPROJECT OPERATING SURFACE\n\n项目作战台\n\n看板、实际工时和排期在同一页闭环，所有操作通过 Core API 同步。\n\nAcme ERP Launch\n3 tasks\nLin Demo\nTODO\nPrepare go-live readiness\n16h estimate\nIN PROGRESS\nBuild delivery workflow\n28h estimate\nREVIEW\nDONE\nConfirm implementation scope\n12h estimate\n工时校正\n\n实际工时 6.5h\n\n实际工时\n校正工时\n资源排期\n\n本周容量等待排期\n\n计划排期\n保存排期\n\n核心页面已加载",
+        "clientWidth": 390,
+        "clientHeight": 844,
+        "scrollWidth": 390,
+        "scrollHeight": 2148,
+        "bodyScrollWidth": 390,
+        "hasHorizontalOverflow": false,
+        "visibleOffscreen": []
+      }
+    },
+    {
+      "route": "dashboard",
+      "path": "/dashboard",
+      "viewport": "mobile",
+      "size": "390x844",
+      "httpStatus": 200,
+      "finalUrl": "http://127.0.0.1:5174/dashboard",
+      "screenshot": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-baseline/mobile-dashboard.png",
+      "expectedHeadingFound": true,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "metrics": {
+        "h1": [
+          "实时盈亏"
+        ],
+        "bodyText": "码程 / Codeworks\n经营中枢\n项目\n盈亏\n工时\n排期\n\nREALTIME PNL\n\n实时盈亏\n\n用同一张经营画布对齐预算、实际成本、毛利和产能压力。\n\n刷新看板\nAcme ERP Launch\n预算收入\n¥100,000\n实际成本\n¥2,080\n毛利\n¥97,920\n产能利用率\n44h / 40h\n\n看板已刷新",
+        "clientWidth": 390,
+        "clientHeight": 844,
+        "scrollWidth": 390,
+        "scrollHeight": 844,
+        "bodyScrollWidth": 390,
+        "hasHorizontalOverflow": false,
+        "visibleOffscreen": []
+      }
+    }
+  ]
+}

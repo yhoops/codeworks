@@ -192,9 +192,9 @@ export function createApiClient({
   };
 
   return {
-    async login(email: string, password: string) {
+    async login(email: string, password: string, tenantSlug?: string) {
       const response = await fetch(`${baseUrl}/auth/login`, {
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, tenantSlug }),
         headers: { "content-type": "application/json" },
         method: "POST"
       });

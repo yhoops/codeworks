@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Headers,
+  Inject,
   Param,
   Patch,
   Post,
@@ -14,7 +15,9 @@ import { TenantService } from "./tenant.service.js";
 @Controller("tenants")
 export class TenantController {
   constructor(
+    @Inject(AuthService)
     private readonly authService: AuthService,
+    @Inject(TenantService)
     private readonly tenantService: TenantService
   ) {}
 

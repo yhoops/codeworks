@@ -363,6 +363,26 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
         assigneeUserId: user.id
       })
     ]);
+    const demoTaskIds = [scopeTask.id, buildTask.id];
+
+    await prisma.costEntry.deleteMany({
+      where: {
+        tenantId: tenant.id,
+        projectId: project.id
+      }
+    });
+    await prisma.timeEntry.deleteMany({
+      where: {
+        tenantId: tenant.id,
+        taskId: { in: demoTaskIds }
+      }
+    });
+    await prisma.resourceAllocation.deleteMany({
+      where: {
+        tenantId: tenant.id,
+        projectId: project.id
+      }
+    });
 
     const timeEntry = await prisma.timeEntry.upsert({
       where: {
@@ -430,7 +450,7 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
       tenantId: tenant.id,
       employeeId: employee.id,
       projectId: project.id,
-      taskId: buildTask.id
+      taskId: scopeTask.id
     });
 
     await prisma.budget.upsert({

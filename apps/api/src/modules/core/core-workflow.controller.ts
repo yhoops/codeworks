@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Headers,
+  Inject,
   Param,
   Patch,
   Post,
@@ -22,10 +23,15 @@ export class CoreWorkflowController {
   private readonly prisma = createSystemPrismaClient() as PrismaClient;
 
   constructor(
+    @Inject(AuthService)
     private readonly authService: AuthService,
+    @Inject(SprintService)
     private readonly sprintService: SprintService,
+    @Inject(TimeEntryService)
     private readonly timeEntryService: TimeEntryService,
+    @Inject(AllocationService)
     private readonly allocationService: AllocationService,
+    @Inject(PnlService)
     private readonly pnlService: PnlService
   ) {}
 

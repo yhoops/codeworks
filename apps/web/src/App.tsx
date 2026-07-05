@@ -29,6 +29,7 @@ export function App() {
   const [session, setSessionState] = useState<AuthSession | null>(() =>
     readStoredSession()
   );
+  const [tenantSlug, setTenantSlug] = useState("demo");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("准备连接 Codeworks API");
@@ -129,7 +130,7 @@ export function App() {
     setStatus("正在登录");
 
     try {
-      await api.login(email, password);
+      await api.login(email, password, tenantSlug);
       setStatus("登录成功");
       navigate("/workspace");
     } catch {
@@ -148,10 +149,13 @@ export function App() {
     }
   };
 
-  const primaryTask = workspace?.tasks[0];
-  const primaryEmployee = primaryTask
-    ? workspace?.employees.find((employee) => employee.id === primaryTask.assigneeUserId)
-    : undefined;
+  const taskWithTimeEntry = workspace?.tasks.find((task) =>
+    workspace.timeEntries.some((entry) => entry.taskId === task.id)
+  );
+  const primaryTask = taskWithTimeEntry ?? workspace?.tasks[0];
+  const primaryEmployee =
+    workspace?.employees.find((employee) => employee.id === primaryTask?.assigneeUserId) ??
+    workspace?.employees[0];
   const primaryProject = primaryTask
     ? workspace?.projects.find((project) => project.id === primaryTask.projectId)
     : workspace?.projects[0];
@@ -221,7 +225,7 @@ export function App() {
   };
 
   const correctTime = async () => {
-    if (!primaryTask?.assigneeUserId) {
+    if (!primaryTask || !primaryEmployee) {
       setStatus("当前任务缺少负责人，无法校正工时");
       return;
     }
@@ -231,7 +235,7 @@ export function App() {
 
     try {
       const result = await api.correctTimeEntry({
-        employeeId: primaryTask.assigneeUserId,
+        employeeId: primaryEmployee.id,
         hours,
         note: "前端校正",
         taskId: primaryTask.id
@@ -244,7 +248,7 @@ export function App() {
   };
 
   const scheduleAllocation = async () => {
-    if (!primaryTask?.assigneeUserId || !primaryProject) {
+    if (!primaryTask || !primaryEmployee || !primaryProject) {
       setStatus("缺少任务或项目，无法保存排期");
       return;
     }
@@ -253,7 +257,7 @@ export function App() {
 
     try {
       const result = await api.scheduleAllocation({
-        employeeId: primaryTask.assigneeUserId,
+        employeeId: primaryEmployee.id,
         plannedHours: Number(plannedHours),
         projectId: primaryProject.id,
         taskId: primaryTask.id,
@@ -319,6 +323,14 @@ export function App() {
           <p className="panel-kicker">Secure workspace</p>
           <h2 id="login-title">登录 Codeworks</h2>
           <form className="login-form" onSubmit={handleLogin}>
+            <label htmlFor="tenant-slug">租户</label>
+            <input
+              id="tenant-slug"
+              autoComplete="organization"
+              onChange={(event) => setTenantSlug(event.target.value)}
+              value={tenantSlug}
+            />
+
             <label htmlFor="email">邮箱</label>
             <input
               id="email"

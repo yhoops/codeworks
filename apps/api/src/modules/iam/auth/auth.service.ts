@@ -4,6 +4,7 @@ import { PrismaClient, type User } from "@prisma/client";
 import { SignJWT, jwtVerify } from "jose";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 
+import type { AuthzContext, FixedRole } from "../../../platform/authz/rbac.guard.js";
 import { createSystemPrismaClient } from "../../../platform/database/prisma.client.js";
 
 export interface AuthUser {
@@ -115,7 +116,11 @@ export class AuthService implements OnModuleDestroy {
       data: { revokedAt: new Date() }
     });
 
-    return this.issueTokens(storedToken.user);
+    const membership = payload.tenantId
+      ? await this.requireActiveMembershipByTenant(storedToken.user.id, payload.tenantId)
+      : undefined;
+
+    return this.issueTokens(storedToken.user, membership);
   }
 
   async logout(refreshToken: string): Promise<void> {
@@ -147,6 +152,25 @@ export class AuthService implements OnModuleDestroy {
     return this.toAuthUser(user);
   }
 
+  async authenticateActor(accessToken: string): Promise<AuthzContext> {
+    const payload = await this.verifyToken(accessToken, "access");
+    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+
+    if (!user || payload.ver !== user.accessTokenVersion) {
+      throw new UnauthorizedException("Invalid access token");
+    }
+
+    if (!payload.tenantId || !this.isFixedRole(payload.role)) {
+      throw new UnauthorizedException("Tenant-scoped access token is required");
+    }
+
+    return {
+      tenantId: payload.tenantId,
+      userId: user.id,
+      roles: [payload.role]
+    };
+  }
+
   private async issueTokens(
     user: User,
     membership?: {
@@ -171,6 +195,8 @@ export class AuthService implements OnModuleDestroy {
       sub: user.id,
       email: user.email,
       typ: "refresh",
+      tenantId: membership?.tenantId,
+      role: membership?.role,
       jti: refreshTokenId
     }, REFRESH_TOKEN_TTL_SECONDS);
 
@@ -278,6 +304,27 @@ export class AuthService implements OnModuleDestroy {
     return membership;
   }
 
+  private async requireActiveMembershipByTenant(userId: string, tenantId: string) {
+    const membership = await this.prisma.membership.findFirst({
+      where: {
+        userId,
+        tenantId,
+        status: "ACTIVE"
+      },
+      include: {
+        tenant: {
+          select: { id: true, slug: true }
+        }
+      }
+    });
+
+    if (!membership) {
+      throw new UnauthorizedException("Tenant membership is inactive or missing");
+    }
+
+    return membership;
+  }
+
   private async hashPassword(password: string): Promise<string> {
     const { argon2id } = await import("hash-wasm");
 
@@ -311,5 +358,9 @@ export class AuthService implements OnModuleDestroy {
       email: user.email,
       name: user.name
     };
+  }
+
+  private isFixedRole(role: string | undefined): role is FixedRole {
+    return role === "ADMIN" || role === "PM" || role === "MEMBER" || role === "FINANCE";
   }
 }

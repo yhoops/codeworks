@@ -56,6 +56,7 @@ body {
 .login-hero,
 .login-panel,
 .workspace-main,
+.core-page,
 .rail {
   position: relative;
   z-index: 1;
@@ -233,12 +234,106 @@ button {
   font-weight: 800;
 }
 
-.workspace-main {
+.workspace-main,
+.core-page {
   align-content: center;
   border-radius: 38px;
   display: grid;
   min-height: calc(100vh - 48px);
   padding: clamp(32px, 7vw, 96px);
+}
+
+.core-page {
+  align-content: start;
+  gap: 24px;
+}
+
+.project-strip,
+.operations-panel {
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 18px;
+}
+
+.project-strip strong {
+  font-family: Poppins, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 1.35rem;
+}
+
+.project-strip span {
+  color: var(--muted);
+}
+
+.board-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.board-column {
+  border-left: 1px solid var(--line);
+  min-height: 220px;
+  padding: 4px 0 0 14px;
+}
+
+.board-column h2,
+.operations-panel h2 {
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  margin: 0 0 14px;
+  text-transform: uppercase;
+}
+
+.task-ticket {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  cursor: grab;
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 14px;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.task-ticket:hover {
+  background: #fff;
+  border-color: rgba(212, 175, 55, 0.64);
+}
+
+.task-ticket span,
+.operations-panel p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.operations-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.operations-panel > div {
+  display: grid;
+  gap: 12px;
+}
+
+.operations-panel label {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.operations-panel input {
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: var(--ink);
+  font: inherit;
+  max-width: 220px;
+  padding: 12px 14px;
 }
 
 .workspace-actions {
@@ -307,5 +402,10 @@ button {
 
   .workspace-main {
     min-height: auto;
+  }
+
+  .board-grid,
+  .operations-panel {
+    grid-template-columns: 1fr;
   }
 }

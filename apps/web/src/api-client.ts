@@ -15,6 +15,47 @@ export interface AuthSession {
   };
 }
 
+export type BoardColumn = "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
+
+export interface CoreTask {
+  id: string;
+  projectId: string;
+  sprintId: string | null;
+  title: string;
+  status: string;
+  boardColumn: BoardColumn;
+  estimateHours: number;
+  assigneeUserId: string | null;
+}
+
+export interface CoreTimeEntry {
+  id: string;
+  taskId: string;
+  employeeId: string;
+  hours: number;
+  source: "AUTO" | "MANUAL";
+  note: string | null;
+}
+
+export interface CoreAllocation {
+  id: string;
+  employeeId: string;
+  projectId: string;
+  taskId: string | null;
+  weekStart: string;
+  plannedHours: number;
+  availableHoursOverride: number | null;
+  isOverloaded: boolean;
+}
+
+export interface CoreWorkspace {
+  projects: Array<{ id: string; name: string; status: string }>;
+  tasks: CoreTask[];
+  employees: Array<{ id: string; name: string; email: string | null }>;
+  timeEntries: CoreTimeEntry[];
+  allocations: CoreAllocation[];
+}
+
 export const AUTH_STORAGE_KEY = "codeworks.auth";
 
 interface ApiClientOptions {
@@ -148,6 +189,53 @@ export function createApiClient({
     },
     me() {
       return requestWithAuth<AuthUser>("/auth/me");
+    },
+    workspace() {
+      return requestWithAuth<CoreWorkspace>("/core/workspace");
+    },
+    moveTask(taskId: string, boardColumn: BoardColumn) {
+      return requestWithAuth<{ task: CoreTask; timeEntry: CoreTimeEntry | null }>(
+        `/core/tasks/${taskId}/move`,
+        {
+          body: JSON.stringify({ boardColumn }),
+          headers: { "content-type": "application/json" },
+          method: "PATCH"
+        }
+      );
+    },
+    correctTimeEntry(input: {
+      taskId: string;
+      employeeId: string;
+      hours: number;
+      note?: string;
+    }) {
+      return requestWithAuth<{ timeEntry: CoreTimeEntry }>("/core/time-entries", {
+        body: JSON.stringify(input),
+        headers: { "content-type": "application/json" },
+        method: "PATCH"
+      });
+    },
+    scheduleAllocation(input: {
+      employeeId: string;
+      projectId: string;
+      taskId?: string;
+      weekStart: string;
+      plannedHours: number;
+    }) {
+      return requestWithAuth<{
+        allocation: CoreAllocation;
+        utilization: {
+          employeeId: string;
+          plannedHours: number;
+          availableHours: number;
+          utilizationRatio: number;
+          isOverloaded: boolean;
+        };
+      }>("/core/allocations", {
+        body: JSON.stringify(input),
+        headers: { "content-type": "application/json" },
+        method: "POST"
+      });
     }
   };
 }

@@ -35,6 +35,7 @@ model Tenant {
   resourceAllocations ResourceAllocation[]
   timeEntries TimeEntry[]
   costEntries CostEntry[]
+  pnlSnapshots PnLSnapshot[]
 
   @@map("tenants")
 }
@@ -164,8 +165,10 @@ model Project {
   milestones       Milestone[]
   sprints          Sprint[]
   tasks            BacklogTask[]
+  budgets          Budget[]
   resourceAllocations ResourceAllocation[]
   costEntries      CostEntry[]
+  pnlSnapshots     PnLSnapshot[]
 
   @@index([tenantId])
   @@index([customerId])
@@ -452,6 +455,7 @@ model RefreshToken {
 model Budget {
   id        String    @id @default(uuid())
   tenantId  String    @map("tenant_id")
+  projectId String?   @map("project_id")
   name      String
   amount    Decimal   @db.Decimal(18, 2)
   currency  String    @default("CNY")
@@ -461,9 +465,32 @@ model Budget {
   updatedBy String?   @map("updated_by")
   deletedAt DateTime? @map("deleted_at")
   tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@unique([tenantId, name])
   @@index([tenantId])
+  @@index([projectId])
   @@index([deletedAt])
   @@map("budgets")
+}
+
+model PnLSnapshot {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  projectId   String   @map("project_id")
+  revenue     Decimal  @db.Decimal(18, 2)
+  totalCost   Decimal  @map("total_cost") @db.Decimal(18, 2)
+  grossProfit Decimal  @map("gross_profit") @db.Decimal(18, 2)
+  grossMargin Decimal  @map("gross_margin") @db.Decimal(10, 4)
+  refreshedAt DateTime @default(now()) @map("refreshed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, projectId])
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([refreshedAt])
+  @@map("pnl_snapshots")
 }

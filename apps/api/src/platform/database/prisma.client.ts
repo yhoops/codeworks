@@ -783,6 +783,7 @@ export function createPrismaClient() {
           const context = requireTenantContext();
 
           await assertTenantDataForWrite(prisma, context, "Budget", args.data);
+          await assertProjectTargetsTenant(prisma, context, "Budget", args.data);
 
           return query({
             ...args,
@@ -793,6 +794,7 @@ export function createPrismaClient() {
           const context = requireTenantContext();
 
           await assertTenantDataForWrite(prisma, context, "Budget", args.data);
+          await assertProjectTargetsTenant(prisma, context, "Budget", args.data);
 
           return query({
             ...args,
@@ -821,6 +823,7 @@ export function createPrismaClient() {
           const context = requireTenantContext();
 
           await assertTenantDataForWrite(prisma, context, "Budget", args.data);
+          await assertProjectTargetsTenant(prisma, context, "Budget", args.data);
           await assertWhereTargetsTenant(prisma, context, "Budget", args.where, (id) =>
             prisma.budget.findUnique({
               where: { id },
@@ -837,6 +840,7 @@ export function createPrismaClient() {
           const context = requireTenantContext();
 
           await assertTenantDataForWrite(prisma, context, "Budget", args.data);
+          await assertProjectTargetsTenant(prisma, context, "Budget", args.data);
 
           return query({
             ...applyTenantSoftDeleteFilter(args, context.tenantId),
@@ -864,6 +868,8 @@ export function createPrismaClient() {
 
           await assertTenantDataForWrite(prisma, context, "Budget", args.create);
           await assertTenantDataForWrite(prisma, context, "Budget", args.update);
+          await assertProjectTargetsTenant(prisma, context, "Budget", args.create);
+          await assertProjectTargetsTenant(prisma, context, "Budget", args.update);
           await assertWhereTargetsTenant(prisma, context, "Budget", args.where, (id) =>
             prisma.budget.findUnique({
               where: { id },
@@ -2272,6 +2278,116 @@ export function createPrismaClient() {
 
           return query({
             ...applyTenantSoftDeleteFilter(args, context.tenantId),
+            create: applyTenantData(args.create, context.tenantId) as typeof args.create,
+            update: assertTenantData(args.update, context.tenantId) as typeof args.update
+          });
+        }
+      },
+      pnLSnapshot: {
+        async create({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "PnLSnapshot", args.data);
+          await assertProjectTargetsTenant(prisma, context, "PnLSnapshot", args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async createMany({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "PnLSnapshot", args.data);
+          await assertProjectTargetsTenant(prisma, context, "PnLSnapshot", args.data);
+
+          return query({
+            ...args,
+            data: applyTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async findMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantOnlyFilter(args, tenantId));
+        },
+        async findFirst({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantOnlyFilter(args, tenantId));
+        },
+        async findUnique({ args, query }) {
+          const context = requireTenantContext();
+          const result = await query(args);
+
+          return assertTenantResult(prisma, context, "PnLSnapshot", result);
+        },
+        async count({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantOnlyFilter(args, tenantId));
+        },
+        async update({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "PnLSnapshot", args.data);
+          await assertProjectTargetsTenant(prisma, context, "PnLSnapshot", args.data);
+          await assertWhereTargetsTenant(
+            prisma,
+            context,
+            "PnLSnapshot",
+            args.where,
+            (id) =>
+              prisma.pnLSnapshot.findUnique({
+                where: { id },
+                select: { id: true, tenantId: true }
+              })
+          );
+
+          return query({
+            ...applyTenantOnlyFilter(args, context.tenantId),
+            data: assertTenantData(args.data, context.tenantId) as typeof args.data
+          });
+        },
+        async delete({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertWhereTargetsTenant(
+            prisma,
+            context,
+            "PnLSnapshot",
+            args.where,
+            (id) =>
+              prisma.pnLSnapshot.findUnique({
+                where: { id },
+                select: { id: true, tenantId: true }
+              })
+          );
+
+          return query(applyTenantOnlyFilter(args, context.tenantId));
+        },
+        async deleteMany({ args, query }) {
+          const { tenantId } = requireTenantContext();
+          return query(applyTenantOnlyFilter(args, tenantId));
+        },
+        async upsert({ args, query }) {
+          const context = requireTenantContext();
+
+          await assertTenantDataForWrite(prisma, context, "PnLSnapshot", args.create);
+          await assertTenantDataForWrite(prisma, context, "PnLSnapshot", args.update);
+          await assertProjectTargetsTenant(prisma, context, "PnLSnapshot", args.create);
+          await assertProjectTargetsTenant(prisma, context, "PnLSnapshot", args.update);
+          await assertWhereTargetsTenant(
+            prisma,
+            context,
+            "PnLSnapshot",
+            args.where,
+            (id) =>
+              prisma.pnLSnapshot.findUnique({
+                where: { id },
+                select: { id: true, tenantId: true }
+              })
+          );
+
+          return query({
+            ...applyTenantOnlyFilter(args, context.tenantId),
             create: applyTenantData(args.create, context.tenantId) as typeof args.create,
             update: assertTenantData(args.update, context.tenantId) as typeof args.update
           });

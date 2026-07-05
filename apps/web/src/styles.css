@@ -57,6 +57,7 @@ body {
 .login-panel,
 .workspace-main,
 .core-page,
+.dashboard-page,
 .rail {
   position: relative;
   z-index: 1;
@@ -243,9 +244,70 @@ button {
   padding: clamp(32px, 7vw, 96px);
 }
 
-.core-page {
+.core-page,
+.dashboard-page {
   align-content: start;
   gap: 24px;
+}
+
+.refresh-action {
+  justify-self: start;
+}
+
+.finance-canvas {
+  background: linear-gradient(135deg, #171717 0%, #232016 100%);
+  border-radius: 34px;
+  color: #fffaf0;
+  display: grid;
+  gap: 18px;
+  padding: clamp(24px, 5vw, 48px);
+}
+
+.finance-headline,
+.metric-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.finance-headline strong {
+  font-family: Poppins, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: clamp(1.8rem, 4vw, 3.4rem);
+  letter-spacing: -0.06em;
+}
+
+.warning-chip {
+  background: #d4af37;
+  border-radius: 999px;
+  color: #171717;
+  font-weight: 900;
+  padding: 8px 14px;
+}
+
+.metric-row span {
+  color: rgba(255, 250, 240, 0.72);
+}
+
+.metric-row strong {
+  font-size: clamp(1.3rem, 3vw, 2.4rem);
+}
+
+.bullet-chart {
+  background: rgba(255, 250, 240, 0.16);
+  border-radius: 999px;
+  height: 18px;
+  overflow: hidden;
+}
+
+.bullet-chart span {
+  background: linear-gradient(90deg, #d4af37, #ff6b35);
+  display: block;
+  height: 100%;
+}
+
+.bullet-chart.utilization span {
+  background: linear-gradient(90deg, #22c55e, #d4af37);
 }
 
 .project-strip,

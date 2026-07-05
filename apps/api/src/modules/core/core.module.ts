@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { PnlService } from "../costing/pnl.service.js";
 import { AuthModule } from "../iam/auth/auth.module.js";
 import { SprintService } from "../projects/sprint.service.js";
 import { AllocationService } from "../resourcing/allocation.service.js";
@@ -12,6 +13,7 @@ import { CoreWorkflowController } from "./core-workflow.controller.js";
   providers: [
     { provide: SprintService, useFactory: () => new SprintService() },
     { provide: TimeEntryService, useFactory: () => new TimeEntryService() },
+    { provide: PnlService, useFactory: () => new PnlService() },
     AllocationService
   ]
 })

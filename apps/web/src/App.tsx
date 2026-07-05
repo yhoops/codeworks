@@ -12,7 +12,8 @@ import type {
   AuthSession,
   BoardColumn,
   CoreTimeEntry,
-  CoreWorkspace
+  CoreWorkspace,
+  DashboardData
 } from "./api-client.js";
 import "./styles.css";
 
@@ -32,6 +33,7 @@ export function App() {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("准备连接 Codeworks API");
   const [workspace, setWorkspace] = useState<CoreWorkspace | null>(null);
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [actualHours, setActualHours] = useState("8");
   const [plannedHours, setPlannedHours] = useState("40");
@@ -81,6 +83,19 @@ export function App() {
     if (session && route === "/login") {
       navigate("/workspace");
     }
+  }, [route, session]);
+
+  useEffect(() => {
+    if (!session || route !== "/dashboard") {
+      return;
+    }
+
+    let ignore = false;
+    void loadDashboard(ignore);
+
+    return () => {
+      ignore = true;
+    };
   }, [route, session]);
 
   useEffect(() => {
@@ -266,6 +281,29 @@ export function App() {
     }
   };
 
+  const loadDashboard = async (ignore = false) => {
+    setStatus("正在刷新看板");
+
+    try {
+      const result = await api.dashboard();
+      if (!ignore) {
+        setDashboard(result.data);
+        setStatus("看板已刷新");
+      }
+    } catch {
+      if (!ignore) {
+        setStatus("看板刷新失败");
+      }
+    }
+  };
+
+  const money = (value: number) =>
+    new Intl.NumberFormat("zh-CN", {
+      currency: "CNY",
+      maximumFractionDigits: 0,
+      style: "currency"
+    }).format(value);
+
   if (!session || route === "/login") {
     return (
       <main className="login-composition">
@@ -422,6 +460,82 @@ export function App() {
     );
   }
 
+  if (route === "/dashboard") {
+    const project = dashboard?.projects[0];
+    const costPercent = project?.revenue
+      ? Math.min(140, Math.round((project.totalCost / project.revenue) * 100))
+      : 0;
+    const utilizationPercent = project?.utilization.availableHours
+      ? Math.min(
+          140,
+          Math.round(
+            (project.utilization.plannedHours / project.utilization.availableHours) *
+              100
+          )
+        )
+      : 0;
+
+    return (
+      <main className="workspace-shell">
+        <ShellRail />
+        <section className="dashboard-page" aria-labelledby="dashboard-title">
+          <p className="eyebrow">Realtime PnL</p>
+          <h1 id="dashboard-title">实时盈亏</h1>
+          <p className="subtitle">
+            用同一张经营画布对齐预算、实际成本、毛利和产能压力。
+          </p>
+
+          <button className="primary-action refresh-action" onClick={() => void loadDashboard()} type="button">
+            刷新看板
+          </button>
+
+          {!project ? (
+            <p className="status-line" role="status">
+              {status}
+            </p>
+          ) : (
+            <section className="finance-canvas" aria-label="盈亏图表">
+              <div className="finance-headline">
+                <strong>{project.name}</strong>
+                {project.overBudget ? <span className="warning-chip">超预算</span> : null}
+              </div>
+
+              <div className="metric-row">
+                <span>预算收入</span>
+                <strong>{money(project.revenue)}</strong>
+              </div>
+              <div className="metric-row">
+                <span>实际成本</span>
+                <strong>{money(project.totalCost)}</strong>
+              </div>
+              <div className="bullet-chart" aria-label="预算 vs 实际">
+                <span style={{ width: `${costPercent}%` }} />
+              </div>
+
+              <div className="metric-row">
+                <span>毛利</span>
+                <strong>{money(project.grossProfit)}</strong>
+              </div>
+              <div className="metric-row">
+                <span>产能利用率</span>
+                <strong>
+                  {project.utilization.plannedHours}h / {project.utilization.availableHours}h
+                </strong>
+              </div>
+              <div className="bullet-chart utilization" aria-label="产能利用率图表">
+                <span style={{ width: `${utilizationPercent}%` }} />
+              </div>
+
+              <p className="status-line" role="status">
+                {status}
+              </p>
+            </section>
+          )}
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="workspace-shell">
       <ShellRail />
@@ -466,6 +580,7 @@ function ShellRail() {
           经营中枢
         </a>
         <a href="/projects">项目</a>
+        <a href="/dashboard">盈亏</a>
         <span>工时</span>
         <span>排期</span>
       </nav>

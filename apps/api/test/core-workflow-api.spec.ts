@@ -205,4 +205,61 @@ describeWithDatabase("Core workflow API", () => {
       .set("Authorization", `Bearer ${refreshResponse.body.accessToken}`)
       .expect(200);
   });
+
+  it("returns realtime PnL and utilization dashboard data", async () => {
+    const { accessToken, employee, project, task } = await createFixture();
+
+    await prisma.budget.create({
+      data: {
+        tenantId: project.tenantId,
+        projectId: project.id,
+        name: `Budget ${project.id}`,
+        amount: 10_000
+      }
+    });
+    await prisma.costEntry.create({
+      data: {
+        tenantId: project.tenantId,
+        projectId: project.id,
+        taskId: task.id,
+        employeeId: employee.id,
+        type: "labor",
+        amount: 12_000,
+        source: "TEST"
+      }
+    });
+    await allocationService.scheduleAllocation(
+      { tenantId: project.tenantId, userId: project.projectManagerId, roles: ["ADMIN"] },
+      {
+        tenantId: project.tenantId,
+        employeeId: employee.id,
+        projectId: project.id,
+        taskId: task.id,
+        weekStart: new Date("2026-07-06T00:00:00.000Z"),
+        plannedHours: 45
+      }
+    );
+
+    const response = await request(app.getHttpServer())
+      .get("/core/dashboard")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.projects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: project.id,
+          revenue: 10_000,
+          totalCost: 12_000,
+          grossProfit: -2_000,
+          overBudget: true,
+          utilization: expect.objectContaining({
+            plannedHours: 45,
+            availableHours: 40,
+            isOverloaded: true
+          })
+        })
+      ])
+    );
+  });
 });

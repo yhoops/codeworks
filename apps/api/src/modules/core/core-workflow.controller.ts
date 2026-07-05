@@ -11,6 +11,7 @@ import {
 import { PrismaClient } from "@prisma/client";
 
 import { createSystemPrismaClient } from "../../platform/database/prisma.client.js";
+import { PnlService } from "../costing/pnl.service.js";
 import { AuthService } from "../iam/auth/auth.service.js";
 import { SprintService, type BoardColumn } from "../projects/sprint.service.js";
 import { AllocationService } from "../resourcing/allocation.service.js";
@@ -24,8 +25,42 @@ export class CoreWorkflowController {
     private readonly authService: AuthService,
     private readonly sprintService: SprintService,
     private readonly timeEntryService: TimeEntryService,
-    private readonly allocationService: AllocationService
+    private readonly allocationService: AllocationService,
+    private readonly pnlService: PnlService
   ) {}
+
+  @Get("dashboard")
+  async dashboard(@Headers("authorization") authorization?: string) {
+    const actor = await this.requireActor(authorization);
+    const projects = await this.prisma.project.findMany({
+      where: { tenantId: actor.tenantId, deletedAt: null },
+      orderBy: [{ createdAt: "asc" }, { name: "asc" }]
+    });
+    const dashboardProjects = await Promise.all(
+      projects.map(async (project) => {
+        const [pnl, utilization] = await Promise.all([
+          this.pnlService.getRealtimeProjectPnl({
+            tenantId: actor.tenantId,
+            projectId: project.id
+          }),
+          this.getProjectUtilization(actor.tenantId, project.id)
+        ]);
+
+        return {
+          id: project.id,
+          name: project.name,
+          revenue: pnl.revenue,
+          totalCost: pnl.totalCost,
+          grossProfit: pnl.grossProfit,
+          grossMargin: pnl.grossMargin,
+          overBudget: pnl.revenue > 0 && pnl.totalCost > pnl.revenue,
+          utilization
+        };
+      })
+    );
+
+    return { projects: dashboardProjects };
+  }
 
   @Get("workspace")
   async workspace(@Headers("authorization") authorization?: string) {
@@ -163,6 +198,61 @@ export class CoreWorkflowController {
     }
 
     return this.authService.authenticateActor(token);
+  }
+
+  private async getProjectUtilization(tenantId: string, projectId: string) {
+    const allocations = await this.prisma.resourceAllocation.findMany({
+      where: { tenantId, projectId, deletedAt: null },
+      orderBy: [{ weekStart: "asc" }, { createdAt: "asc" }]
+    });
+    const employeeIds = [...new Set(allocations.map((allocation) => allocation.employeeId))];
+    const capacities = await this.prisma.capacity.findMany({
+      where: {
+        tenantId,
+        employeeId: { in: employeeIds },
+        deletedAt: null
+      },
+      orderBy: [{ effectiveFrom: "desc" }, { createdAt: "desc" }]
+    });
+    const capacityByEmployee = new Map<string, number>();
+
+    for (const capacity of capacities) {
+      if (!capacityByEmployee.has(capacity.employeeId)) {
+        capacityByEmployee.set(capacity.employeeId, Number(capacity.weeklyHours));
+      }
+    }
+
+    const buckets = new Map<string, { plannedHours: number; availableHours: number }>();
+
+    for (const allocation of allocations) {
+      const key = `${allocation.employeeId}:${allocation.weekStart.toISOString()}`;
+      const bucket = buckets.get(key) ?? {
+        plannedHours: 0,
+        availableHours:
+          allocation.availableHoursOverride?.toNumber() ??
+          capacityByEmployee.get(allocation.employeeId) ??
+          0
+      };
+      bucket.plannedHours += allocation.plannedHours.toNumber();
+      buckets.set(key, bucket);
+    }
+
+    const totals = Array.from(buckets.values()).reduce(
+      (sum, bucket) => ({
+        plannedHours: sum.plannedHours + bucket.plannedHours,
+        availableHours: sum.availableHours + bucket.availableHours
+      }),
+      { plannedHours: 0, availableHours: 0 }
+    );
+
+    return {
+      ...totals,
+      utilizationRatio:
+        totals.availableHours === 0
+          ? 0
+          : Number((totals.plannedHours / totals.availableHours).toFixed(4)),
+      isOverloaded: totals.availableHours > 0 && totals.plannedHours > totals.availableHours
+    };
   }
 
   private serializeTask(task: {

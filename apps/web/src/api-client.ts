@@ -56,6 +56,26 @@ export interface CoreWorkspace {
   allocations: CoreAllocation[];
 }
 
+export interface DashboardProject {
+  id: string;
+  name: string;
+  revenue: number;
+  totalCost: number;
+  grossProfit: number;
+  grossMargin: number;
+  overBudget: boolean;
+  utilization: {
+    plannedHours: number;
+    availableHours: number;
+    utilizationRatio: number;
+    isOverloaded: boolean;
+  };
+}
+
+export interface DashboardData {
+  projects: DashboardProject[];
+}
+
 export const AUTH_STORAGE_KEY = "codeworks.auth";
 
 interface ApiClientOptions {
@@ -192,6 +212,9 @@ export function createApiClient({
     },
     workspace() {
       return requestWithAuth<CoreWorkspace>("/core/workspace");
+    },
+    dashboard() {
+      return requestWithAuth<DashboardData>("/core/dashboard");
     },
     moveTask(taskId: string, boardColumn: BoardColumn) {
       return requestWithAuth<{ task: CoreTask; timeEntry: CoreTimeEntry | null }>(

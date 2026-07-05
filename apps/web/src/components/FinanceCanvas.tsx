@@ -5,6 +5,8 @@
  * 依赖：DashboardProject 数据；被用于：盈亏路由。
  */
 import type { DashboardProject } from "../api/types.js";
+import { BulletChart } from "./BulletChart.js";
+import { MetricRow } from "./MetricRow.js";
 
 interface FinanceCanvasProps {
   project: DashboardProject;
@@ -38,31 +40,20 @@ export function FinanceCanvas({ project, status }: FinanceCanvasProps) {
         {project.overBudget ? <span className="warning-chip">超预算</span> : null}
       </div>
 
-      <div className="metric-row">
-        <span>预算收入</span>
-        <strong>{money(project.revenue)}</strong>
-      </div>
-      <div className="metric-row">
-        <span>实际成本</span>
-        <strong>{money(project.totalCost)}</strong>
-      </div>
-      <div className="bullet-chart" aria-label="预算 vs 实际">
-        <span style={{ width: `${costPercent}%` }} />
-      </div>
+      <MetricRow label="预算收入" value={money(project.revenue)} />
+      <MetricRow label="实际成本" value={money(project.totalCost)} />
+      <BulletChart ariaLabel="预算 vs 实际" percent={costPercent} />
 
-      <div className="metric-row">
-        <span>毛利</span>
-        <strong>{money(project.grossProfit)}</strong>
-      </div>
-      <div className="metric-row">
-        <span>产能利用率</span>
-        <strong>
-          {project.utilization.plannedHours}h / {project.utilization.availableHours}h
-        </strong>
-      </div>
-      <div className="bullet-chart utilization" aria-label="产能利用率图表">
-        <span style={{ width: `${utilizationPercent}%` }} />
-      </div>
+      <MetricRow label="毛利" value={money(project.grossProfit)} />
+      <MetricRow
+        label="产能利用率"
+        value={`${project.utilization.plannedHours}h / ${project.utilization.availableHours}h`}
+      />
+      <BulletChart
+        ariaLabel="产能利用率图表"
+        className="utilization"
+        percent={utilizationPercent}
+      />
 
       <p className="status-line" role="status">
         {status}

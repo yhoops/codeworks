@@ -169,6 +169,85 @@ describeWithDatabase("Tenant-isolated Prisma client", () => {
     });
   });
 
+  it("rejects and audits batch writes that target another tenant's budget", async () => {
+    const suffix = randomUUID();
+    const tenantA = await systemPrisma.tenant.create({
+      data: { name: "Tenant A", slug: `tenant-a-batch-${suffix}` }
+    });
+    const tenantB = await systemPrisma.tenant.create({
+      data: { name: "Tenant B", slug: `tenant-b-batch-${suffix}` }
+    });
+    const tenantABudget = await systemPrisma.budget.create({
+      data: {
+        tenantId: tenantA.id,
+        name: `Tenant A Batch Budget ${suffix}`,
+        amount: new Prisma.Decimal("10.00")
+      }
+    });
+    const tenantBUpdateBudget = await systemPrisma.budget.create({
+      data: {
+        tenantId: tenantB.id,
+        name: `Tenant B Batch Update Budget ${suffix}`,
+        amount: new Prisma.Decimal("20.00")
+      }
+    });
+    const tenantBDeleteBudget = await systemPrisma.budget.create({
+      data: {
+        tenantId: tenantB.id,
+        name: `Tenant B Batch Delete Budget ${suffix}`,
+        amount: new Prisma.Decimal("30.00")
+      }
+    });
+
+    await expect(
+      runWithTenantContext({ tenantId: tenantA.id }, () =>
+        tenantPrisma.budget.updateMany({
+          where: { id: tenantBUpdateBudget.id },
+          data: { name: "Compromised Batch Budget" }
+        })
+      )
+    ).rejects.toBeInstanceOf(ForbiddenTenantAccessError);
+    await expect(
+      runWithTenantContext({ tenantId: tenantA.id }, () =>
+        tenantPrisma.budget.deleteMany({
+          where: { id: tenantBDeleteBudget.id }
+        })
+      )
+    ).rejects.toBeInstanceOf(ForbiddenTenantAccessError);
+
+    await expect(
+      systemPrisma.auditLog.findMany({
+        where: {
+          tenantId: tenantA.id,
+          action: "CROSS_TENANT_ACCESS_DENIED",
+          entityType: "Budget",
+          entityId: { in: [tenantBUpdateBudget.id, tenantBDeleteBudget.id] }
+        }
+      })
+    ).resolves.toHaveLength(2);
+    await expect(
+      systemPrisma.budget.findUnique({ where: { id: tenantBUpdateBudget.id } })
+    ).resolves.toMatchObject({
+      tenantId: tenantB.id,
+      name: `Tenant B Batch Update Budget ${suffix}`
+    });
+    await expect(
+      systemPrisma.budget.findUnique({ where: { id: tenantBDeleteBudget.id } })
+    ).resolves.toMatchObject({
+      tenantId: tenantB.id,
+      name: `Tenant B Batch Delete Budget ${suffix}`
+    });
+
+    await expect(
+      runWithTenantContext({ tenantId: tenantA.id }, () =>
+        tenantPrisma.budget.updateMany({
+          where: { id: tenantABudget.id },
+          data: { name: `Tenant A Batch Updated ${suffix}` }
+        })
+      )
+    ).resolves.toMatchObject({ count: 1 });
+  });
+
   it("isolates audit logs through the tenant-aware client", async () => {
     const suffix = randomUUID();
     const tenantA = await systemPrisma.tenant.create({

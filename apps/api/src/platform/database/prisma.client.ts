@@ -852,6 +852,12 @@ export function createPrismaClient() {
 
           await assertTenantDataForWrite(prisma, context, "Budget", args.data);
           await assertProjectTargetsTenant(prisma, context, "Budget", args.data);
+          await assertWhereTargetsTenant(prisma, context, "Budget", args.where, (id) =>
+            prisma.budget.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
 
           return query({
             ...applyTenantSoftDeleteFilter(args, context.tenantId),
@@ -871,8 +877,16 @@ export function createPrismaClient() {
           return query(applyTenantSoftDeleteFilter(args, context.tenantId));
         },
         async deleteMany({ args, query }) {
-          const { tenantId } = requireTenantContext();
-          return query(applyTenantSoftDeleteFilter(args, tenantId));
+          const context = requireTenantContext();
+
+          await assertWhereTargetsTenant(prisma, context, "Budget", args.where, (id) =>
+            prisma.budget.findUnique({
+              where: { id },
+              select: { id: true, tenantId: true }
+            })
+          );
+
+          return query(applyTenantSoftDeleteFilter(args, context.tenantId));
         },
         async upsert({ args, query }) {
           const context = requireTenantContext();

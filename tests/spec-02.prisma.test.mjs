@@ -1,3 +1,8 @@
+/**
+ * spec-02.prisma workspace 级结构测试。
+ * 验证仓库脚本、迁移或文档约定，补足单个应用包无法覆盖的集成规则。
+ * 依赖：Node test runner；被用于：pnpm test:workspace。
+ */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";

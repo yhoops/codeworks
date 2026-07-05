@@ -1,3 +1,8 @@
+/**
+ * tenant-extension-sprints.ts Prisma 租户隔离扩展。
+ * 按业务域拆分 query hooks，使每组模型的租户过滤和关联 guard 可独立审查。
+ * 依赖：租户上下文与数据库 guard；被用于：createPrismaClient 组合。
+ */
 // tenant-isolation-sprints
 import { Prisma, type PrismaClient } from "@prisma/client";
 

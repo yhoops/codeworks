@@ -1,3 +1,8 @@
+/**
+ * demo-seed 行为规格测试。
+ * 按业务能力或平台契约聚焦真实服务/数据库行为，避免把跨模块验收压回实现细节。
+ * 依赖：Vitest、Prisma/Nest 测试入口；被用于：API 回归门禁。
+ */
 import { describe, expect, it } from "vitest";
 
 import { AuthService } from "../src/modules/iam/auth/auth.service.js";

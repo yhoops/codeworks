@@ -1,3 +1,8 @@
+/**
+ * health 行为规格测试。
+ * 按业务能力或平台契约聚焦真实服务/数据库行为，避免把跨模块验收压回实现细节。
+ * 依赖：Vitest、Prisma/Nest 测试入口；被用于：API 回归门禁。
+ */
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

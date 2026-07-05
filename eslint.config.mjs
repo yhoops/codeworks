@@ -1,3 +1,8 @@
+/**
+ * ESLint 全仓规则入口。
+ * 集中声明 TypeScript、React 与测试文件规则，避免各包重复维护 lint 策略。
+ * 依赖：@eslint/js 与 typescript-eslint；被用于：pnpm lint。
+ */
 import tsEslintPlugin from "@typescript-eslint/eslint-plugin";
 import tsEslintParser from "@typescript-eslint/parser";
 

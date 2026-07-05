@@ -1,3 +1,8 @@
+/**
+ * Playwright 端到端测试配置。
+ * 统一 Web/API 本地服务与测试数据库地址，让浏览器验证走真实主线而非单测替身。
+ * 依赖：Playwright test runner；被用于：pnpm test:e2e。
+ */
 import { defineConfig } from "@playwright/test";
 
 const databaseUrl =

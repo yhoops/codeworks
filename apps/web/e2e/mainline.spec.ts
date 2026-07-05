@@ -1,3 +1,8 @@
+/**
+ * mainline 浏览器端到端规格。
+ * 通过真实页面和 API 服务验证主线流程，补足组件测试看不到的布局与集成风险。
+ * 依赖：Playwright 与本地 Web/API 服务；被用于：pnpm test:e2e。
+ */
 import { expect, test } from "@playwright/test";
 import { execSync } from "node:child_process";
 

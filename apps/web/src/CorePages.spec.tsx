@@ -1,3 +1,8 @@
+/**
+ * CorePages Web 前端模块。
+ * 保留页面、状态或入口的单一职责，让路由壳、数据 hooks 与组件可以独立演进。
+ * 依赖：React/Vite 应用层；被用于：Web UI 与前端测试。
+ */
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";

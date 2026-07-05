@@ -1,3 +1,8 @@
+/**
+ * domain-event-bus.ts API 平台能力。
+ * 将审计、鉴权、事件或存储等横切能力从业务模块剥离，保持业务服务聚焦用例。
+ * 依赖：NestJS/平台上下文；被用于：领域模块与控制器。
+ */
 import type { Prisma } from "@prisma/client";
 
 export interface DomainEvent {

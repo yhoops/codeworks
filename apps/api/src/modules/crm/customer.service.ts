@@ -1,3 +1,8 @@
+/**
+ * customer.service.ts 领域服务。
+ * 封装单一业务能力的数据库读写与校验，避免控制器和其他模块重复组织查询。
+ * 依赖：Prisma 客户端与领域类型；被用于：控制器、种子或测试。
+ */
 import {
   BadRequestException,
   Injectable,

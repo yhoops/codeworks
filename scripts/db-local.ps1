@@ -1,3 +1,8 @@
+<#
+  本地 PostgreSQL 开发脚本。
+  用仓库内 .tmp/postgres 数据目录固定测试数据库端口，避免依赖 Docker 或全局服务状态。
+  依赖：本机 PostgreSQL CLI；被用于：本地迁移、单元测试与 Playwright E2E。
+#>
 param(
   [ValidateSet("start", "stop", "status", "reset")]
   [string] $Command = "start",

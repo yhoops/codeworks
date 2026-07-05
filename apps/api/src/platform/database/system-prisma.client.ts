@@ -1,3 +1,8 @@
+/**
+ * system-prisma.client.ts 数据库平台模块。
+ * 承载 Prisma 客户端、租户过滤或 guard 的基础能力，集中保护跨租户边界。
+ * 依赖：Prisma 与租户上下文；被用于：API 服务与测试。
+ */
 // Builds the system Prisma client with default soft-delete read filters.
 import { Prisma, PrismaClient } from "@prisma/client";
 

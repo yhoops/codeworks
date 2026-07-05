@@ -1,0 +1,27 @@
+/*
+ * Web 响应式覆盖层。
+ * 把窄屏布局规则放在 components 之后，保持桌面样式稳定并让移动端覆盖顺序可预测。
+ * 依赖：components.css 的基础选择器；被用于：移动端和窄桌面视口。
+ */
+@media (max-width: 820px) {
+  .rail {
+    gap: 20px;
+  }
+
+  .rail nav {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .board-grid,
+  .operations-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .finance-headline,
+  .metric-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}

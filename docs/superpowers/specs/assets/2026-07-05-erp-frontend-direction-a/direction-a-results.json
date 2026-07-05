@@ -1,0 +1,98 @@
+[
+  {
+    "height": 1024,
+    "name": "login",
+    "width": 1440,
+    "auth": false,
+    "path": "/login",
+    "consoleErrors": [],
+    "file": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-direction-a/desktop-login.png",
+    "bodyScrollWidth": 1440,
+    "clientWidth": 1440,
+    "title": "码程 · Codeworks"
+  },
+  {
+    "height": 1024,
+    "name": "workspace",
+    "width": 1440,
+    "auth": true,
+    "path": "/workspace",
+    "consoleErrors": [],
+    "file": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-direction-a/desktop-workspace.png",
+    "bodyScrollWidth": 1440,
+    "clientWidth": 1440,
+    "title": "码程 · Codeworks"
+  },
+  {
+    "height": 1024,
+    "name": "projects",
+    "width": 1440,
+    "auth": true,
+    "path": "/projects",
+    "consoleErrors": [],
+    "file": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-direction-a/desktop-projects.png",
+    "bodyScrollWidth": 1440,
+    "clientWidth": 1440,
+    "title": "码程 · Codeworks"
+  },
+  {
+    "height": 1024,
+    "name": "dashboard",
+    "width": 1440,
+    "auth": true,
+    "path": "/dashboard",
+    "consoleErrors": [],
+    "file": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-direction-a/desktop-dashboard.png",
+    "bodyScrollWidth": 1440,
+    "clientWidth": 1440,
+    "title": "码程 · Codeworks"
+  },
+  {
+    "height": 844,
+    "name": "login",
+    "width": 390,
+    "auth": false,
+    "path": "/login",
+    "consoleErrors": [],
+    "file": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-direction-a/mobile-login.png",
+    "bodyScrollWidth": 390,
+    "clientWidth": 390,
+    "title": "码程 · Codeworks"
+  },
+  {
+    "height": 844,
+    "name": "workspace",
+    "width": 390,
+    "auth": true,
+    "path": "/workspace",
+    "consoleErrors": [],
+    "file": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-direction-a/mobile-workspace.png",
+    "bodyScrollWidth": 390,
+    "clientWidth": 390,
+    "title": "码程 · Codeworks"
+  },
+  {
+    "height": 844,
+    "name": "projects",
+    "width": 390,
+    "auth": true,
+    "path": "/projects",
+    "consoleErrors": [],
+    "file": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-direction-a/mobile-projects.png",
+    "bodyScrollWidth": 390,
+    "clientWidth": 390,
+    "title": "码程 · Codeworks"
+  },
+  {
+    "height": 844,
+    "name": "dashboard",
+    "width": 390,
+    "auth": true,
+    "path": "/dashboard",
+    "consoleErrors": [],
+    "file": "docs/superpowers/specs/assets/2026-07-05-erp-frontend-direction-a/mobile-dashboard.png",
+    "bodyScrollWidth": 390,
+    "clientWidth": 390,
+    "title": "码程 · Codeworks"
+  }
+]

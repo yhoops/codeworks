@@ -22,11 +22,11 @@ const money = (value: number) =>
 
 export function FinanceCanvas({ project, status }: FinanceCanvasProps) {
   const costPercent = project.revenue
-    ? Math.min(140, Math.round((project.totalCost / project.revenue) * 100))
+    ? Math.min(100, Math.round((project.totalCost / project.revenue) * 100))
     : 0;
   const utilizationPercent = project.utilization.availableHours
     ? Math.min(
-        140,
+        100,
         Math.round(
           (project.utilization.plannedHours / project.utilization.availableHours) * 100
         )

@@ -5,7 +5,7 @@
  * 依赖：系统 Prisma 客户端和各领域 seed 模块；被用于：prisma/seed.ts 与测试。
  */
 import { createSystemPrismaClient } from "../../apps/api/src/platform/database/prisma.client.js";
-import { DEMO_LOGIN, type DemoSeedResult } from "./constants.js";
+import type { DemoSeedResult } from "./constants.js";
 import { upsertCustomer } from "./crm.js";
 import {
   resetDemoFinancials,
